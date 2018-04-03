@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Process {{ process }}</title>
+</head>
+<body>
+
+<h1>{{ process }}</h1>
+<a href="{% url "process-list" %}">List</a>
+
+<dl>
+    <dt>Flow</dt><dd>{{ process.flow.title }}</dd>
+    <dt>Started at</dt><dd>{{ process.started_at }}</dd>
+    <dt>Finished at</dt><dd>{{ process.finished_at }}</dd>
+</dl>
+
+<h2>Activity instances</h2>
+<ul>
+    {% for instance in activity_instances %}
+        <li>
+            {{ instance.activity_name }} ({{ instance.status }}), started {{ instance.started_at }}, finished {{ instance.finished_at }}
+            {% if instance.status == instance.STATUS_FINISHED %}
+            <form method="post" action="{% url "activity-undo" instance.process.flow_label instance.pk %}">
+                {% csrf_token %}
+                <input type="submit" value="undo">
+            </form>
+            {% elif instance.status == instance.STATUS_INSTANTIATED %}
+                <form method="post" action="{% url "activity-cancel" instance.process.flow_label instance.pk %}">
+                    {% csrf_token %}
+                    <input type="submit" value="cancel">
+                </form>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+<h2>Steps</h2>
+
+<ul>
+    {% for activity in current_activities %}
+        <li>
+            {% if activity.has_view %}
+                <a href="{% url "process-activity" activity.flow.label activity.instance.pk %}">{{ activity.name }}</a>
+            {% else %}
+                {{ activity.name }}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+</body>
+</html>
