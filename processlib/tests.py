@@ -1,7 +1,7 @@
 from django.test import TestCase
 
-from processlib.activity import StartActivity, Wait
-from processlib.flow import Flow
+from .activity import StartActivity, Wait
+from .flow import Flow
 
 
 class FlowTest(TestCase):

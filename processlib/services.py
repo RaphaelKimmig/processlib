@@ -1,5 +1,5 @@
-from processlib.flow import get_flow
-from processlib.models import ActivityInstance, Process
+from .flow import get_flow
+from .models import ActivityInstance, Process
 
 
 def get_process_for_flow(flow_label, process_id):
@@ -31,3 +31,9 @@ def get_finished_activities_in_process(process):
 
 def get_user_processes(user):
     return Process.objects.all()
+
+
+def cancel_and_undo_predecessors(activity):
+    activity.cancel()
+    for instance in activity.instance.predecessors.all():
+        instance.activity.undo()

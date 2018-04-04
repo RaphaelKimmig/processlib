@@ -1,12 +1,18 @@
-from django.conf.urls import url
+from django.conf.urls import url, include
+from rest_framework import routers
 
-from processlib.views import (ProcessListView, ProcessDetailView, ProcessStartView, ProcessActivityView,
-                              ActivityUndoView, ActivityCancelView)
+from processlib.views import (ProcessListView, ProcessDetailView, ProcessStartView,
+                              ProcessActivityView,
+                              ActivityUndoView, ActivityCancelView, ProcessViewSet)
 from order.views import OrderViewForm
 
 
 from crm_inbox.flows import *  # noqa
 from order.flows import *  # noqa
+
+
+router = routers.DefaultRouter()
+router.register('process', ProcessViewSet)
 
 
 urlpatterns = [
@@ -19,4 +25,6 @@ urlpatterns = [
 
     url(r'^order/(?P<config_id>\d+)/$', OrderViewForm.as_view(), name='order-process'),
     url(r'^order/(?P<config_id>\d+)/(?P<process_id>.*)/$', OrderViewForm.as_view(), name='order-process'),
+
+    url(r'^api/', include(router.urls)),
 ]

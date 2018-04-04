@@ -113,7 +113,7 @@ class FunctionActivity(Activity):
 
     def instantiate(self, predecessor=None):
         super(FunctionActivity, self).instantiate(predecessor)
-        run_async_activity.delay(self.flow.label, self.instance.pk)
+        self.start()
 
     def start(self):
         super(FunctionActivity, self).start()

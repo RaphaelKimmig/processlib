@@ -166,4 +166,3 @@ class SimpleViewTest(WebTest):
         process = EinfachpackenOrderProcess.objects.latest('started_at')
         self.assertContains(response.follow(), process)
 
-

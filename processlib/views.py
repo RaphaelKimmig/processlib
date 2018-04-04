@@ -2,16 +2,18 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView, DetailView
+from rest_framework import viewsets
 
-from processlib.flow import (Flow, get_flows, get_flow)
-from processlib.models import Process, ActivityInstance
-from processlib.services import (get_process_for_flow, get_current_activities_in_process,
-                                 get_activity_for_flow)
+from .flow import (Flow, get_flows, get_flow)
+from .models import Process, ActivityInstance
+from .services import (get_process_for_flow, get_current_activities_in_process,
+                       get_activity_for_flow)
+from .serializers import ProcessSerializer
 
 
 class LinearFormFlowView(View):
     process_id = None
-    flow = Flow(None)
+    flow = None
     template_name = 'processlib/step.html'
     view_name = None
     process = None
@@ -174,3 +176,8 @@ class ActivityMixin(object):
 
     def get_success_url(self):
         return reverse('process-detail', args=(self.activity.process.pk, ))
+
+
+class ProcessViewSet(viewsets.ModelViewSet):
+    queryset = Process.objects.all()
+    serializer_class = ProcessSerializer
