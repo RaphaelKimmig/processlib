@@ -63,9 +63,9 @@ class ProcessListView(ListView):
     context_object_name = 'process_list'
     queryset = Process.objects.all()
 
-    def get_context_data(self, object_list=None, **kwargs):
+    def get_context_data(self, **kwargs):
         kwargs['flows'] = get_flows()
-        return super(ProcessListView, self).get_context_data(object_list=object_list, **kwargs)
+        return super(ProcessListView, self).get_context_data(**kwargs)
 
 
 class ProcessDetailView(DetailView):
