@@ -1,4 +1,15 @@
-from celery import shared_task
+import warnings
+
+try:
+    from celery import shared_task
+except ImportError:
+    warnings.warn("Celery is requried for running shared tasks")
+    def shared_task(**kwargs):
+        def wrap(f):
+            setattr(f, 'delay', f)
+            return f
+        return wrap
+
 
 from processlib.services import get_activity_for_flow
 
