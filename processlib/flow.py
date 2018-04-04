@@ -8,7 +8,7 @@ import six
 from django.utils import timezone
 from six import python_2_unicode_compatible
 
-from processlib.models import Process, ActivityInstance
+from .models import Process, ActivityInstance
 
 _FLOWS = {}
 
@@ -22,10 +22,12 @@ def get_flow(label):
 
 
 def flow_label(flow):
-    return '{}.{}'.format(flow.__module__, flow.name)  # FIXME app label?
+    return flow.name  # FIXME app label?
 
 
 def register_flow(flow):
+    if flow.label in _FLOWS:
+        raise ValueError("Flow {} already registered".format(flow.label))
     _FLOWS[flow.label] = flow
 
 

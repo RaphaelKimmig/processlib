@@ -1,13 +1,22 @@
 import uuid
-
+from django.core.exceptions import ValidationError
 from django.db import models
 from six import python_2_unicode_compatible
+
+
+def validate_flow_label(value):
+    from .flow import _FLOWS
+    if value not in _FLOWS:
+        raise ValidationError("Unknown flow label {}, available: ".format(
+            value, ', '.join(_FLOWS.keys())
+        ))
+    return value
 
 
 @python_2_unicode_compatible
 class Process(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    flow_label = models.CharField(max_length=255)
+    flow_label = models.CharField(max_length=255, validators=[validate_flow_label])
 
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
@@ -21,16 +30,12 @@ class Process(models.Model):
             return "{} {}".format(self.flow, self.id)
         return str(self.id)
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        assert self.flow_label
-        super(Process, self).save(force_insert, force_update, using, update_fields)
-
     @property
     def flow(self):
         """
         :rtype: processlib.flow.Flow
         """
-        from processlib.flow import get_flow
+        from .flow import get_flow
         return get_flow(self.flow_label)
 
 
@@ -53,6 +58,10 @@ class ActivityInstance(models.Model):
     instantiated_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
+
+#    assigned_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+#                                      null=True)
+#    assigned_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True)
 
     def __repr__(self):
         return '{}(activity_name="{}")'.format(self.__class__.__name__, self.activity_name)
