@@ -36,7 +36,7 @@ class Activity(object):
         self.instance = self.flow.activity_model(
             process=self.process,
             activity_name=self.name,
-            **instance_kwargs or {},
+            **(instance_kwargs or {})
         )
         self.instance.save()
         if predecessor:
@@ -143,7 +143,7 @@ class StartMixin(Activity):
         self.instance = self.flow.activity_model(
             process=self.process,
             activity_name=self.name,
-            **instance_kwargs or {},
+            **(instance_kwargs or {})
         )
 
     def finish(self, **kwargs):
@@ -235,7 +235,7 @@ class Wait(Activity):
             self.instance = self.flow.activity_model(
                 process=self.process,
                 activity_name=self.name,
-                **instance_kwargs or {},
+                **(instance_kwargs or {})
             )
             self.instance.save()
 
