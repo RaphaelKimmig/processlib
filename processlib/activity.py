@@ -118,6 +118,7 @@ class FunctionActivity(Activity):
     def start(self):
         super(FunctionActivity, self).start()
         self.callback(self)
+        self.finish()
 
 
 class AsyncActivity(Activity):
