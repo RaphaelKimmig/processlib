@@ -123,6 +123,5 @@ class Flow(object):
             **kwargs
         )
         activity = self._get_activity_by_name(process, list(self._activities)[0])
-        activity.instantiate()
         return activity
 

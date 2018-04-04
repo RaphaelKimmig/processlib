@@ -1,6 +1,8 @@
 import uuid
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.translation import ugettext_lazy as _
+
 from six import python_2_unicode_compatible
 
 
@@ -18,8 +20,8 @@ class Process(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     flow_label = models.CharField(max_length=255, validators=[validate_flow_label])
 
-    started_at = models.DateTimeField(null=True)
-    finished_at = models.DateTimeField(null=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
 
     @property
     def activity_instances(self):
@@ -38,6 +40,8 @@ class Process(models.Model):
         from .flow import get_flow
         return get_flow(self.flow_label)
 
+    class Meta:
+        verbose_name = _("Process")
 
 class ActivityInstance(models.Model):
     STATUS_INSTANTIATED = 'instantiated'

@@ -31,23 +31,24 @@ class Activity(object):
     def __repr__(self):
         return '{}(name="{}")'.format(self.__class__.__name__, self.name)
 
-    def instantiate(self, predecessor=None):
+    def instantiate(self, predecessor=None, instance_kwargs=None, **kwargs):
         assert not self.instance
         self.instance = self.flow.activity_model(
             process=self.process,
             activity_name=self.name,
+            **instance_kwargs or {},
         )
         self.instance.save()
         if predecessor:
             self.instance.predecessors.add(predecessor.instance)
 
-    def start(self):
+    def start(self, **kwargs):
         assert self.instance.status == self.instance.STATUS_INSTANTIATED
         if not self.instance.started_at:
             self.instance.started_at = timezone.now()
         self.instance.status = self.instance.STATUS_STARTED
 
-    def finish(self):
+    def finish(self, **kwargs):
         assert self.instance.status == self.instance.STATUS_STARTED
         if not self.instance.finished_at:
             self.instance.finished_at = timezone.now()
@@ -55,12 +56,12 @@ class Activity(object):
         self.instance.save()
         self._instantiate_next_activities()
 
-    def cancel(self):
+    def cancel(self, **kwargs):
         assert self.instance.status == self.instance.STATUS_INSTANTIATED
         self.instance.status = self.instance.STATUS_CANCELED
         self.instance.save()
 
-    def undo(self):
+    def undo(self, **kwargs):
         assert self.instance.status == self.instance.STATUS_FINISHED
         self.instance.finished_at = None
         self.instance.status = self.instance.STATUS_INSTANTIATED
@@ -87,8 +88,8 @@ class State(Activity):
     An activity that simple serves as a marker for a certain state being reached, e.g.
     if the activity before it was conditional.
     """
-    def instantiate(self, predecessor=None):
-        super(State, self).instantiate(predecessor)
+    def instantiate(self, **kwargs):
+        super(State, self).instantiate(**kwargs)
         self.start()
         self.finish()
 
@@ -111,12 +112,12 @@ class FunctionActivity(Activity):
         self.callback = callback
         super(FunctionActivity, self).__init__(**kwargs)
 
-    def instantiate(self, predecessor=None):
-        super(FunctionActivity, self).instantiate(predecessor)
+    def instantiate(self, **kwargs):
+        super(FunctionActivity, self).instantiate(**kwargs)
         self.start()
 
-    def start(self):
-        super(FunctionActivity, self).start()
+    def start(self, **kwargs):
+        super(FunctionActivity, self).start(**kwargs)
         self.callback(self)
         self.finish()
 
@@ -126,25 +127,26 @@ class AsyncActivity(Activity):
         self.callback = callback
         super(AsyncActivity, self).__init__(**kwargs)
 
-    def instantiate(self, predecessor=None):
-        super(AsyncActivity, self).instantiate(predecessor)
+    def instantiate(self, **kwargs):
+        super(AsyncActivity, self).instantiate(**kwargs)
         run_async_activity.delay(self.flow.label, self.instance.pk)
 
-    def start(self):
-        super(AsyncActivity, self).start()
+    def start(self, **kwargs):
+        super(AsyncActivity, self).start(**kwargs)
         self.callback(self)
 
 
 class StartMixin(Activity):
-    def instantiate(self, predecessor=None):
+    def instantiate(self, predecessor=None, instance_kwargs=None, **kwargs):
         assert not self.instance
         assert not predecessor
         self.instance = self.flow.activity_model(
             process=self.process,
             activity_name=self.name,
+            **instance_kwargs or {},
         )
 
-    def finish(self):
+    def finish(self, **kwargs):
         assert self.instance.status == self.instance.STATUS_STARTED
         if not self.instance.finished_at:
             self.instance.finished_at = timezone.now()
@@ -165,13 +167,13 @@ class StartViewActivity(StartMixin, ViewActivity):
 
 
 class EndActivity(Activity):
-    def instantiate(self, predecessor=None):
-        super(EndActivity, self).instantiate(predecessor)
+    def instantiate(self, **kwargs):
+        super(EndActivity, self).instantiate(**kwargs)
         self.start()
         self.finish()
 
-    def finish(self):
-        super(EndActivity, self).finish()
+    def finish(self, **kwargs):
+        super(EndActivity, self).finish(**kwargs)
 
         if not self.process.finished_at:
             self.process.finished_at = self.instance.finished_at
@@ -222,7 +224,7 @@ class Wait(Activity):
 
         raise self.flow.activity_model.DoesNotExist()
 
-    def instantiate(self, predecessor=None):
+    def instantiate(self, predecessor=None, instance_kwargs=None, **kwargs):
         if predecessor is None:
             raise ValueError("Can't wait for something without a predecessor.")
 
@@ -233,13 +235,14 @@ class Wait(Activity):
             self.instance = self.flow.activity_model(
                 process=self.process,
                 activity_name=self.name,
+                **instance_kwargs or {},
             )
             self.instance.save()
 
         self.instance.predecessors.add(predecessor.instance)
         self.start()
 
-    def start(self):
+    def start(self, **kwargs):
         if not self.instance.started_at:
             self.instance.started_at = timezone.now()
 
