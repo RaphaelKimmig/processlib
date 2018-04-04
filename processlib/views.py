@@ -1,4 +1,5 @@
-from django.shortcuts import render, redirect
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView, DetailView
@@ -11,7 +12,23 @@ from .services import (get_process_for_flow, get_current_activities_in_process,
 from .serializers import ProcessSerializer
 
 
-class LinearFormFlowView(View):
+class CurrentAppMixin(object):
+    def get_current_app(self):
+        try:
+            current_app = self.request.current_app
+        except AttributeError:
+            try:
+                current_app = self.request.resolver_match.namespace
+            except AttributeError:
+                current_app = None
+        return current_app
+
+    def redirect(self, view_name, *args, **kwargs):
+        url = reverse(view_name, args=args, kwargs=kwargs, current_app=self.get_current_app())
+        return HttpResponseRedirect(url)
+
+
+class LinearFormFlowView(CurrentAppMixin, View):
     process_id = None
     flow = None
     template_name = 'processlib/step.html'
@@ -51,18 +68,18 @@ class LinearFormFlowView(View):
         form.save()
         activity.finish()
 
-        return redirect(self.get_next_url(activity))  # FIXME success page and so on?
+        return self.redirect(self.get_next_url(activity))  # FIXME success page and so on?
 
     def get_next_url(self, control):
         return reverse(self.view_name, kwargs={
             'process_id': control.process.id,
-        })
+        }, current_app=self.get_current_app())
 
 
-class ProcessListView(ListView):
+class ProcessListView(CurrentAppMixin, ListView):
     context_object_name = 'process_list'
     queryset = Process.objects.all()
-    detail_view_name = 'process-detail'
+    detail_view_name = 'processlib:process-detail'
 
     def get_context_data(self, **kwargs):
         kwargs['flows'] = get_flows()
@@ -73,6 +90,7 @@ class ProcessListView(ListView):
 class ProcessDetailView(DetailView):
     context_object_name = 'process'
     queryset = Process.objects.all()
+    list_view_name = 'processlib:process-list'
 
     def get_template_names(self):
         names = super(ProcessDetailView, self).get_template_names()
@@ -84,6 +102,7 @@ class ProcessDetailView(DetailView):
         return process.flow.process_model.objects.get(pk=process.pk)
 
     def get_context_data(self, **kwargs):
+        kwargs['list_view_name'] = self.list_view_name
         kwargs['current_activities'] = get_current_activities_in_process(self.object)
         kwargs['activity_instances'] = (
             self.object.flow.activity_model._default_manager.filter(process_id=self.object.pk)
@@ -92,7 +111,7 @@ class ProcessDetailView(DetailView):
         return super(ProcessDetailView, self).get_context_data(**kwargs)
 
 
-class ProcessStartView(View):
+class ProcessStartView(CurrentAppMixin, View):
     flow_label = None
 
     def get_activity(self):
@@ -110,7 +129,7 @@ class ProcessStartView(View):
     def post(self, request, *args, **kwargs):
         self.activity.start()
         self.activity.finish()
-        return redirect('process-detail', pk=self.activity.process.pk)
+        return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
 class ProcessActivityView(View):
@@ -126,7 +145,7 @@ class ProcessActivityView(View):
         return self.activity.dispatch(request, *args, **kwargs)
 
 
-class ActivityUndoView(View):
+class ActivityUndoView(CurrentAppMixin, View):
     queryset = ActivityInstance.objects.all()
 
     activity_id = None
@@ -138,10 +157,10 @@ class ActivityUndoView(View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
         self.activity.undo()
-        return redirect('process-detail', pk=self.activity.process.pk)
+        return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
-class ActivityCancelView(View):
+class ActivityCancelView(CurrentAppMixin, View):
     queryset = ActivityInstance.objects.all()
 
     activity_id = None
@@ -153,10 +172,10 @@ class ActivityCancelView(View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
         self.activity.cancel()
-        return redirect('process-detail', pk=self.activity.process.pk)
+        return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
-class ActivityMixin(object):
+class ActivityMixin(CurrentAppMixin):
     activity = None
 
     def get_context_data(self, **kwargs):
@@ -177,7 +196,8 @@ class ActivityMixin(object):
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse('process-detail', args=(self.activity.process.pk, ))
+        return reverse('processlib:process-detail', args=(self.activity.process.pk, ),
+                       current_app=self.get_current_app())
 
 
 class ProcessViewSet(viewsets.ModelViewSet):

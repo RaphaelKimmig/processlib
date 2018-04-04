@@ -1,16 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-
-</head>
-<body>
+{% extends "processlib/layout.html" %}
+{% block content %}
     <h1>{{ process.id }}</h1>
     <form action="." method="post">
         {% csrf_token %}
         {{ form }}
         <input type="submit" value="ok"/>
     </form>
-</body>
-</html>
+{% endblock %}
