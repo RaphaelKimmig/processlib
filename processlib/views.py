@@ -62,9 +62,11 @@ class LinearFormFlowView(View):
 class ProcessListView(ListView):
     context_object_name = 'process_list'
     queryset = Process.objects.all()
+    detail_view_name = 'process-detail'
 
     def get_context_data(self, **kwargs):
         kwargs['flows'] = get_flows()
+        kwargs['detail_view_name'] = self.detail_view_name
         return super(ProcessListView, self).get_context_data(**kwargs)
 
 

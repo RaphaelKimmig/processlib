@@ -9,7 +9,7 @@
 <ul>
 {% for process in process_list %}
     <li>
-        <a href="{% url "process-detail" process.pk %}">{{ process }}</a>
+        <a href="{% url detail_view_name process.pk %}">{{ process }}</a>
     </li>
 {% endfor %}
 </ul>
