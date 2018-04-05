@@ -203,6 +203,9 @@ class ActivityMixin(CurrentAppMixin):
 class ProcessViewSet(viewsets.ModelViewSet):
     queryset = Process.objects.all()
 
+    # a dict mapping flow labels to serializer classes to allow overriding those
+    serializer_class_overrides = {}
+
     def get_process_model(self):
         if 'flow_label' in self.request.data:
             flow = get_flow(self.request.data['flow_label'])
@@ -213,6 +216,8 @@ class ProcessViewSet(viewsets.ModelViewSet):
         return self.get_process_model()._default_manager.all()
 
     def get_serializer_class(self):
+        if self.request.data.get('flow_label') in self.serializer_class_overrides:
+            return self.serializer_class_overrides[self.request.data['flow_label']]
         class DynamicSerializer(ProcessSerializer):
             class Meta(ProcessSerializer.Meta):
                 model = self.get_process_model()
