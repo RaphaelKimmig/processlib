@@ -35,8 +35,8 @@ class LinearFormFlowView(CurrentAppMixin, View):
     view_name = None
     process = None
 
-    def get_start_activity(self, **kwargs):
-        return self.flow.get_start_activity(**kwargs)
+    def get_start_activity(self, **process_kwargs):
+        return self.flow.get_start_activity(**process_kwargs)
 
     def get_next_activity(self, **kwargs):
         if self.kwargs.get('process_id'):
@@ -202,4 +202,18 @@ class ActivityMixin(CurrentAppMixin):
 
 class ProcessViewSet(viewsets.ModelViewSet):
     queryset = Process.objects.all()
-    serializer_class = ProcessSerializer
+
+    def get_process_model(self):
+        if 'flow_label' in self.request.data:
+            flow = get_flow(self.request.data['flow_label'])
+            return flow.process_model
+        return Process
+
+    def get_queryset(self):
+        return self.get_process_model()._default_manager.all()
+
+    def get_serializer_class(self):
+        class DynamicSerializer(ProcessSerializer):
+            class Meta(ProcessSerializer.Meta):
+                model = self.get_process_model()
+        return DynamicSerializer
