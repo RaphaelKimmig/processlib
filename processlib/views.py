@@ -212,7 +212,10 @@ class ProcessViewSet(viewsets.ModelViewSet):
 
     def get_process_model(self):
         if 'flow_label' in self.request.data:
-            flow = get_flow(self.request.data['flow_label'])
+            try:
+                flow = get_flow(self.request.data['flow_label'])
+            except KeyError:
+                return Process
             return flow.process_model
         return Process
 
