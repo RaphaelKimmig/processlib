@@ -178,6 +178,10 @@ class ActivityCancelView(CurrentAppMixin, View):
 class ActivityMixin(CurrentAppMixin):
     activity = None
 
+    def get_template_names(self):
+        names = super(CurrentAppMixin, self).get_template_names()
+        return names + ['processlib/view_activity.html']
+
     def get_context_data(self, **kwargs):
         kwargs['activity'] = self.activity
         return super(ActivityMixin, self).get_context_data(**kwargs)

@@ -1,0 +1,9 @@
+{% extends "processlib/layout.html" %}
+{% block content %}
+    <h1>{{ process.id }}</h1>
+    <form action="." method="post">
+        {% csrf_token %}
+        {{ form }}
+        <input type="submit" value="ok"/>
+    </form>
+{% endblock %}
