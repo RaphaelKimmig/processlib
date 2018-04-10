@@ -35,8 +35,8 @@ class LinearFormFlowView(CurrentAppMixin, View):
     view_name = None
     process = None
 
-    def get_start_activity(self, **process_kwargs):
-        return self.flow.get_start_activity(**process_kwargs)
+    def get_start_activity(self, process_kwargs):
+        return self.flow.get_start_activity(process_kwargs=process_kwargs)
 
     def get_next_activity(self, **kwargs):
         if self.kwargs.get('process_id'):
@@ -45,7 +45,7 @@ class LinearFormFlowView(CurrentAppMixin, View):
             candidates = get_current_activities_in_process(process)
             activity = next(candidates)
         else:
-            activity = self.get_start_activity(**kwargs)
+            activity = self.get_start_activity(process_kwargs=kwargs)
         return activity
 
     def get(self, request, **kwargs):

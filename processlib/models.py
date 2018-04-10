@@ -1,4 +1,7 @@
 import uuid
+
+from django.conf import settings
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -43,6 +46,7 @@ class Process(models.Model):
     class Meta:
         verbose_name = _("Process")
 
+
 class ActivityInstance(models.Model):
     STATUS_INSTANTIATED = 'instantiated'
     STATUS_STARTED = 'started'
@@ -63,9 +67,9 @@ class ActivityInstance(models.Model):
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
 
-#    assigned_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-#                                      null=True)
-#    assigned_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True)
+    assigned_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                      null=True)
+    assigned_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True)
 
     def __repr__(self):
         return '{}(activity_name="{}")'.format(self.__class__.__name__, self.activity_name)
