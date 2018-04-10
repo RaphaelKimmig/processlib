@@ -1,6 +1,6 @@
 {% extends "processlib/layout.html" %}
 {% block content %}
-    <h1>{{ process.id }}</h1>
+    <h1>{{ activity.description|default:activity.name }}</h1>
     <form action="." method="post">
         {% csrf_token %}
         {{ form }}
