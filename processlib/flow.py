@@ -34,7 +34,7 @@ def register_flow(flow):
 @python_2_unicode_compatible
 class Flow(object):
     def __init__(self, name, process_model=Process, activity_model=ActivityInstance,
-                 verbose_name=None):
+                 verbose_name='', description=''):
         self.name = name
         self.activity_model = activity_model
         self.verbose_name = verbose_name
@@ -44,6 +44,7 @@ class Flow(object):
         self._in_edges = defaultdict(list)
         self._out_edges = defaultdict(list)
         self.label = flow_label(self)
+        self.description = description
         register_flow(self)
 
     def copy(self, name, process_model=None, activity_model=None, verbose_name=None):
@@ -57,7 +58,7 @@ class Flow(object):
             copy.activity_model = activity_model
 
     def __str__(self):
-        return self.verbose_name or self.name or repr(self)
+        return str(self.verbose_name or self.name)
 
     def start_with(self, activity_name, activity, **activity_kwargs):
         if self._activities:

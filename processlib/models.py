@@ -32,8 +32,23 @@ class Process(models.Model):
 
     def __str__(self):
         if self.flow:
-            return "{} {}".format(self.flow, self.id)
+            return "{} {}".format(str(self.flow), str(self.id))
         return str(self.id)
+
+    @property
+    def full(self):
+        return self.flow.process_model._default_manager.get(pk=self.pk)
+
+    @property
+    def description(self):
+        try:
+            return self.flow.description.format(process=self)
+        except KeyError:
+            try:
+                return self.flow.description.format(process=self.full)
+            except KeyError:
+                pass
+        return self.flow.description
 
     @property
     def flow(self):

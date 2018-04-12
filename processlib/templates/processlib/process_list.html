@@ -3,9 +3,14 @@
     <h1>Processes</h1>
     <ul>
         {% for process in process_list %}
+        {% with process=process.full %}
             <li>
                 <a href="{% url detail_view_name process.pk %}">{{ process }}</a>
+                <p>
+                    {{ process.description }}
+                </p>
             </li>
+        {% endwith %}
         {% endfor %}
     </ul>
 
