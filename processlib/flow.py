@@ -121,6 +121,7 @@ class Flow(object):
         process = self.process_model(
             flow_label=self.label,
             started_at=timezone.now(),
+            status=ActivityInstance.STATUS_STARTED,
             **(process_kwargs or {})
         )
         activity = self._get_activity_by_name(process, list(self._activities)[0])

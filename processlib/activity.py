@@ -1,14 +1,15 @@
+from django.core.urlresolvers import reverse
 from django.utils import timezone
 
 from processlib.tasks import run_async_activity
 
 
 class Activity(object):
-    def __init__(self, flow, process, instance, name, description=None, permissions=None,
+    def __init__(self, flow, process, instance, name, verbose_name=None, permissions=None,
                  skip_if=None):
         self.flow = flow
         self.process = process
-        self.description = description
+        self.verbose_name = verbose_name
         self.permissions = permissions
         self.name = name
         self.instance = instance
@@ -26,7 +27,7 @@ class Activity(object):
         return False
 
     def __str__(self):
-        return self.name
+        return str(self.verbose_name or self.name)
 
     def __repr__(self):
         return '{}(name="{}")'.format(self.__class__.__name__, self.name)
@@ -57,7 +58,8 @@ class Activity(object):
         self._instantiate_next_activities()
 
     def cancel(self, **kwargs):
-        assert self.instance.status == self.instance.STATUS_INSTANTIATED
+        assert self.instance.status in (self.instance.STATUS_INSTANTIATED,
+                                        self.instance.STATUS_ERROR)
         self.instance.status = self.instance.STATUS_CANCELED
         self.instance.save()
 
@@ -65,6 +67,11 @@ class Activity(object):
         assert self.instance.status == self.instance.STATUS_FINISHED
         self.instance.finished_at = None
         self.instance.status = self.instance.STATUS_INSTANTIATED
+        self.instance.save()
+
+    def error(self, **kwargs):
+        assert self.instance.status != self.instance.STATUS_FINISHED
+        self.instance.status = self.instance.STATUS_ERROR
         self.instance.save()
 
     def _get_next_activities(self):
@@ -102,6 +109,12 @@ class ViewActivity(Activity):
     def has_view(self):
         return True
 
+    def get_absolute_url(self):
+        return reverse('processlib:process-activity', kwargs={
+            'flow_label': self.flow.label,
+            'activity_id': self.instance.pk
+        })
+
     def dispatch(self, request, *args, **kwargs):
         kwargs['activity'] = self
         return self.view(request, *args, **kwargs)
@@ -121,6 +134,11 @@ class FunctionActivity(Activity):
         self.callback(self)
         self.finish()
 
+    def retry(self):
+        self.instance.status = self.instance.STATUS_INSTANTIATED
+        self.instance.save()
+        self.start()
+
 
 class AsyncActivity(Activity):
     def __init__(self, callback=None, **kwargs):
@@ -129,6 +147,11 @@ class AsyncActivity(Activity):
 
     def instantiate(self, **kwargs):
         super(AsyncActivity, self).instantiate(**kwargs)
+        run_async_activity.delay(self.flow.label, self.instance.pk)
+
+    def retry(self):
+        self.instance.status = self.instance.STATUS_INSTANTIATED
+        self.instance.save()
         run_async_activity.delay(self.flow.label, self.instance.pk)
 
     def start(self, **kwargs):
@@ -173,12 +196,19 @@ class EndActivity(Activity):
         self.finish()
 
     def finish(self, **kwargs):
+        from models import ActivityInstance
         super(EndActivity, self).finish(**kwargs)
 
+        update_fields = []
         if not self.process.finished_at:
             self.process.finished_at = self.instance.finished_at
-            self.process.save(update_fields=['finished_at'])
+            update_fields.append('finished_at')
 
+        if not self.process.status == ActivityInstance.STATUS_FINISHED:
+            self.process.status = ActivityInstance.STATUS_FINISHED
+            update_fields.append('status')
+
+        self.process.save(update_fields=update_fields)
 
 class FormActivity(Activity):
     def __init__(self, form_class=None, **kwargs):

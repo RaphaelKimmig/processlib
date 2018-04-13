@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
@@ -157,6 +158,23 @@ class ActivityUndoView(CurrentAppMixin, View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
         self.activity.undo()
+        return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
+
+
+class ActivityRetryView(CurrentAppMixin, View):
+    queryset = ActivityInstance.objects.all()
+
+    activity_id = None
+    flow_label = None
+
+    def get_activity(self):
+        return get_activity_for_flow(self.kwargs['flow_label'], self.kwargs['activity_id'])
+
+    def post(self, request, *args, **kwargs):
+        self.activity = self.get_activity()
+        if hasattr(self.activity, 'retry'):
+            messages.success(request, "Retrying {}".format(self.activity))
+            self.activity.retry()
         return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 

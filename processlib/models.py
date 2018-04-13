@@ -26,6 +26,8 @@ class Process(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
+    status = models.CharField(max_length=255, default='')
+
     @property
     def activity_instances(self):
         return self.flow.activity_model._default_manager.filter(process_id=self.pk)
@@ -67,7 +69,7 @@ class ActivityInstance(models.Model):
     STATUS_STARTED = 'started'
     STATUS_CANCELED = 'canceled'
     STATUS_FINISHED = 'finished'
-    STATUS_ERROR = 'ERROR'
+    STATUS_ERROR = 'error'
 
     status = models.CharField(default=STATUS_INSTANTIATED, max_length=16)
 
@@ -91,7 +93,7 @@ class ActivityInstance(models.Model):
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         if not self.activity_name:
-            raise ValueError("Missing")
+            raise ValueError("Missing activity name")
         super(ActivityInstance, self).save(force_insert, force_update, using, update_fields)
 
     @property

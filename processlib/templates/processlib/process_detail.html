@@ -1,10 +1,11 @@
 {% extends "processlib/layout.html" %}
 
-{% block title %}Process {{ process }}{% endblock %}
+{% block title %}{{ process }}{% endblock %}
 
 {% block content %}
     <h1>{{ process }}</h1>
     <a href="{% url list_view_name %}">List</a>
+    <p>{{ process.description }}</p>
 
     <dl>
         <dt>Flow</dt><dd>{{ process.flow.title }}</dd>
@@ -12,20 +13,28 @@
         <dt>Finished at</dt><dd>{{ process.finished_at }}</dd>
     </dl>
 
-    <h2>Activity instances</h2>
+    <h2>Activities</h2>
     <ul>
         {% for instance in activity_instances %}
             <li>
-                {{ instance.activity_name }} ({{ instance.status }}), started {{ instance.started_at }}, finished {{ instance.finished_at }}
+                {{ instance.activity }}
+                ({{ instance.status }}), started {{ instance.started_at }}, finished {{ instance.finished_at }}
                 {% if instance.status == instance.STATUS_FINISHED %}
                     <form method="post" action="{% url "processlib:activity-undo" instance.process.flow_label instance.pk %}">
                         {% csrf_token %}
                         <input type="submit" value="undo">
                     </form>
-                {% elif instance.status == instance.STATUS_INSTANTIATED %}
+                {% endif %}
+                {% if instance.status == instance.STATUS_INSTANTIATED or instance.status == instance.STATUS_ERROR %}
                     <form method="post" action="{% url "processlib:activity-cancel" instance.process.flow_label instance.pk %}">
                         {% csrf_token %}
                         <input type="submit" value="cancel">
+                    </form>
+                {% endif %}
+                {% if instance.status == instance.STATUS_ERROR or instance.status == instance.STATUS_INSTANTIATED and not instance.activity.has_view %}
+                    <form method="post" action="{% url "processlib:activity-retry" instance.process.flow_label instance.pk %}">
+                        {% csrf_token %}
+                        <input type="submit" value="retry">
                     </form>
                 {% endif %}
             </li>
