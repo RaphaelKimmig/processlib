@@ -3,7 +3,7 @@ from django.urls import reverse
 from django_webtest import WebTest
 
 from crm_inbox.flows import erp_order_flow
-from crm_inbox.models import Person, Organisation, EinfachpackenOrderProcess
+from crm_inbox.models import Person, Organisation, DemoOrderProcess
 from processlib.services import get_current_activities_in_process
 
 
@@ -19,12 +19,12 @@ class FlowTest(TestCase):
         person = Person.objects.create()
 
         start = erp_order_flow.get_start_activity(
-            person=person
+            process_kwargs={'person': person}
         )
         start.start()
         start.finish()
 
-        process = EinfachpackenOrderProcess.objects.get()
+        process = DemoOrderProcess.objects.get()
 
         up_next = list(get_current_activities_in_process(process))
 
@@ -35,14 +35,13 @@ class FlowTest(TestCase):
         organisation = Organisation.objects.create()
 
         start = erp_order_flow.get_start_activity(
-            organisation=organisation,
-            person=person,
+            process_kwargs={'organisation': organisation, 'person': person}
         )
 
         start.start()
         start.finish()
 
-        process = EinfachpackenOrderProcess.objects.get()
+        process = DemoOrderProcess.objects.get()
 
         self.assertEqual(process.person, person)
         self.assertEqual(process.organisation, organisation)
@@ -51,12 +50,12 @@ class FlowTest(TestCase):
         organisation = Organisation.objects.create()
 
         start = erp_order_flow.get_start_activity(
-            organisation=organisation,
+            process_kwargs={'organisation' :organisation},
         )
         start.start()
         start.finish()
 
-        process = EinfachpackenOrderProcess.objects.get()
+        process = DemoOrderProcess.objects.get()
 
         up_next = list(get_current_activities_in_process(process))
 
@@ -67,13 +66,15 @@ class FlowTest(TestCase):
         person = Person.objects.create()
 
         start = erp_order_flow.get_start_activity(
-            organisation=organisation,
-            person=person,
+            process_kwargs={
+                'organisation': organisation,
+                'person': person,
+            }
         )
         start.start()
         start.finish()
 
-        process = EinfachpackenOrderProcess.objects.get()
+        process = DemoOrderProcess.objects.get()
 
         self.assertTrue(process.activity_instances.filter(activity_name='transmit_order').exists())
 
@@ -112,7 +113,7 @@ class FlowTest(TestCase):
         start.start()
         start.finish()
 
-        process = EinfachpackenOrderProcess.objects.get()
+        process = DemoOrderProcess.objects.get()
         match_organisation = next(get_current_activities_in_process(process))
 
         match_organisation.start()
@@ -140,22 +141,24 @@ class SimpleViewTest(WebTest):
         self.process_2 = start.process
 
     def test_process_list_contains_processes(self):
-        process_list = self.app.get(reverse('process-list'))
+        process_list = self.app.get(reverse('processlib:process-list'))
         self.assertContains(process_list, self.process_1.id)
         self.assertContains(process_list, self.process_2.id)
 
     def test_process_list_links_detail(self):
-        process_list = self.app.get(reverse('process-list'))
+        process_list = self.app.get(reverse('processlib:process-list'))
         detail_page = process_list.click(str(self.process_1.id))
         self.assertContains(detail_page, self.process_1.id)
         self.assertNotContains(detail_page, self.process_2.id)
 
     def test_detail_view_shows_id(self):
-        process_detail = self.app.get(reverse('process-detail', args=(self.process_1.id, )))
+        process_detail = self.app.get(
+            reverse('processlib:process-detail', kwargs={'pk': self.process_1.id})
+        )
         self.assertContains(process_detail, self.process_1.id)
 
     def test_list_view_allows_creating(self):
-        process_list = self.app.get(reverse('process-list'))
+        process_list = self.app.get(reverse('processlib:process-list'))
         for form in process_list.forms.values():
             if "Start Process an order" in str(form.html):
                 response = form.submit()
@@ -163,6 +166,6 @@ class SimpleViewTest(WebTest):
         else:
             raise Exception("Form with start button not found")
 
-        process = EinfachpackenOrderProcess.objects.latest('started_at')
+        process = DemoOrderProcess.objects.latest('started_at')
         self.assertContains(response.follow(), process)
 

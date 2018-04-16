@@ -1,4 +1,4 @@
-from crm_inbox.models import EinfachpackenOrderProcess, CampaignParticipationProcess
+from crm_inbox.models import DemoOrderProcess, CampaignParticipationProcess
 from crm_inbox.services import (transmit_order_to_erp, update_campaign_step,
                                 create_event_entry_for_process, create_task_for_process)
 from crm_inbox.views import MatchOrganisationView, MatchPersonView
@@ -8,7 +8,7 @@ from processlib.flow import Flow
 
 erp_order_flow = Flow(
     "erp_order_flow",
-    process_model=EinfachpackenOrderProcess,
+    process_model=DemoOrderProcess,
     verbose_name='Process an order'
 ).start_with(
     'receive_order', StartActivity,

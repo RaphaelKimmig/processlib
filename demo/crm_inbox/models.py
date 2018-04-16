@@ -1,8 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
 
-# Create your models here.
-from jsonfield import JSONField
 
 from processlib.models import Process
 
@@ -15,12 +13,9 @@ class Organisation(models.Model):
     pass
 
 
-class EinfachpackenOrderProcess(Process):
-    data = JSONField()
-
+class DemoOrderProcess(Process):
     person = models.ForeignKey(Person, on_delete=models.SET_NULL, null=True)
     organisation = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
-    # FIXME employment
 
     erp_order_id = models.CharField(max_length=255, default='', blank=True)
 

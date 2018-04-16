@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import jsonfield.fields
 
 
 class Migration(migrations.Migration):
@@ -27,10 +26,9 @@ class Migration(migrations.Migration):
             bases=('processlib.process',),
         ),
         migrations.CreateModel(
-            name='EinfachpackenOrderProcess',
+            name='DemoOrderProcess',
             fields=[
                 ('process_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='processlib.Process')),
-                ('data', jsonfield.fields.JSONField(default=dict)),
                 ('erp_order_id', models.CharField(blank=True, default='', max_length=255)),
             ],
             bases=('processlib.process',),
@@ -48,12 +46,12 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.AddField(
-            model_name='einfachpackenorderprocess',
+            model_name='demoorderprocess',
             name='organisation',
             field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='crm_inbox.Organisation'),
         ),
         migrations.AddField(
-            model_name='einfachpackenorderprocess',
+            model_name='demoorderprocess',
             name='person',
             field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='crm_inbox.Person'),
         ),
