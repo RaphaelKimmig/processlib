@@ -70,6 +70,7 @@ class Process(models.Model):
 
 class ActivityInstance(models.Model):
     STATUS_INSTANTIATED = 'instantiated'
+    STATUS_SCHEDULED = 'scheduled'
     STATUS_STARTED = 'started'
     STATUS_CANCELED = 'canceled'
     STATUS_FINISHED = 'finished'
@@ -85,6 +86,7 @@ class ActivityInstance(models.Model):
     predecessors = models.ManyToManyField('self', related_name='successors', symmetrical=False)
 
     instantiated_at = models.DateTimeField(auto_now_add=True)
+    scheduled_at = models.DateTimeField(null=True)
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
 
@@ -99,6 +101,10 @@ class ActivityInstance(models.Model):
         if not self.activity_name:
             raise ValueError("Missing activity name")
         super(ActivityInstance, self).save(force_insert, force_update, using, update_fields)
+
+    @property
+    def has_active_successors(self):
+        return self.successors.exclude(status=STATUS_ERROR).exists()
 
     @property
     def activity(self):

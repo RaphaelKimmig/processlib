@@ -44,7 +44,8 @@ class Activity(object):
             self.instance.predecessors.add(predecessor.instance)
 
     def start(self, **kwargs):
-        assert self.instance.status == self.instance.STATUS_INSTANTIATED
+        assert self.instance.status in (self.instance.STATUS_INSTANTIATED,
+                                        self.instance.STATUS_SCHEDULED)
         if not self.instance.started_at:
             self.instance.started_at = timezone.now()
         self.instance.status = self.instance.STATUS_STARTED
@@ -147,6 +148,12 @@ class AsyncActivity(Activity):
 
     def instantiate(self, **kwargs):
         super(AsyncActivity, self).instantiate(**kwargs)
+        self.schedule()
+
+    def schedule(self, **kwargs):
+        self.instance.status = self.instance.STATUS_SCHEDULED
+        self.instance.scheduled_at = timezone.now()
+        self.instance.save()
         run_async_activity.delay(self.flow.label, self.instance.pk)
 
     def retry(self):
