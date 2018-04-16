@@ -3,7 +3,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.views import View
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, FormView, UpdateView
 from rest_framework import viewsets
 
 from .flow import (Flow, get_flows, get_flow)
@@ -110,6 +110,29 @@ class ProcessDetailView(DetailView):
                 .exclude(status=ActivityInstance.STATUS_CANCELED)
         )
         return super(ProcessDetailView, self).get_context_data(**kwargs)
+
+
+class ProcessCancelView(UpdateView):
+    template_name = 'processlib/process_cancel.html'
+    context_object_name = 'process'
+    fields = []
+    queryset = Process.objects.all()
+
+    def get_success_url(self):
+        return reverse('processlib:process-detail', kwargs={'pk': self.object.pk})
+
+    def get_object(self, queryset=None):
+        process = super(ProcessCancelView, self).get_object(queryset)
+        return process.flow.process_model.objects.get(pk=process.pk)
+
+    def form_valid(self, form):
+        if not self.object.can_cancel(self.request.user):
+            messages.error(self.request, "You can't cancel that process at this time.")
+
+        from .services import cancel_process
+        cancel_process(self.object)
+
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class ProcessStartView(CurrentAppMixin, View):

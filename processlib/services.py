@@ -16,10 +16,10 @@ def get_activity_for_flow(flow_label, activity_instance_id):
 
 def get_current_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
-    return (
+    return [
         instance.activity for instance in instances.exclude(
         status__in=(ActivityInstance.STATUS_FINISHED, ActivityInstance.STATUS_CANCELED))
-    )
+    ]
 
 
 def get_finished_activities_in_process(process):
@@ -37,3 +37,14 @@ def cancel_and_undo_predecessors(activity):
     activity.cancel()
     for instance in activity.instance.predecessors.all():
         instance.activity.undo()
+
+
+def cancel_process(process):
+    assert process.can_cancel()
+    activities = get_current_activities_in_process(process)
+
+    for activity in activities:
+        activity.cancel()
+
+    process.status = ActivityInstance.STATUS_CANCELED
+    process.save()

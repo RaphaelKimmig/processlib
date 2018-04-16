@@ -41,6 +41,10 @@ class Process(models.Model):
     def full(self):
         return self.flow.process_model._default_manager.get(pk=self.pk)
 
+    def can_cancel(self, user=None):
+        return self.status not in (ActivityInstance.STATUS_FINISHED,
+                                   ActivityInstance.STATUS_CANCELED)
+
     @property
     def description(self):
         try:

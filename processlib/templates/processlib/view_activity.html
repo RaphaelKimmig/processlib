@@ -1,6 +1,7 @@
 {% extends "processlib/layout.html" %}
 {% block content %}
     <h1>{{ activity.description|default:activity.name }}</h1>
+    <a href="{% url 'processlib:process-detail' activity.process.pk %}">{{ activity.process }}</a>
     <form action="." method="post">
         {% csrf_token %}
         {{ form }}

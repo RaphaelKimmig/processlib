@@ -1,14 +1,22 @@
 {% extends "processlib/layout.html" %}
+{% load i18n %}
 
 {% block title %}{{ process }}{% endblock %}
 
 {% block content %}
     <h1>{{ process }}</h1>
-    <a href="{% url list_view_name %}">List</a>
     <p>{{ process.description }}</p>
 
+    <p>
+    <a class="btn btn-default" href="{% url list_view_name %}">List</a>
+    {% if process.can_cancel %}
+        <a class="btn btn-danger" href="{% url 'processlib:process-cancel' process.pk %}">{% trans "Cancel" %}</a>
+    {% endif %}
+    </p>
+
     <dl>
-        <dt>Flow</dt><dd>{{ process.flow.title }}</dd>
+        <dt>Flow</dt><dd>{{ process.flow }}</dd>
+        <dt>Status</dt><dd>{{ process.status }}</dd>
         <dt>Started at</dt><dd>{{ process.started_at }}</dd>
         <dt>Finished at</dt><dd>{{ process.finished_at }}</dd>
     </dl>
@@ -22,19 +30,19 @@
                 {% if instance.status == instance.STATUS_FINISHED %}
                     <form method="post" action="{% url "processlib:activity-undo" instance.process.flow_label instance.pk %}">
                         {% csrf_token %}
-                        <input type="submit" value="undo">
+                        <input type="submit" value="undo" class="btn btn-warning">
                     </form>
                 {% endif %}
                 {% if instance.status == instance.STATUS_INSTANTIATED or instance.status == instance.STATUS_ERROR %}
                     <form method="post" action="{% url "processlib:activity-cancel" instance.process.flow_label instance.pk %}">
                         {% csrf_token %}
-                        <input type="submit" value="cancel">
+                        <input type="submit" value="cancel" class="btn btn-danger">
                     </form>
                 {% endif %}
                 {% if instance.status == instance.STATUS_ERROR or instance.status == instance.STATUS_INSTANTIATED and not instance.activity.has_view %}
                     <form method="post" action="{% url "processlib:activity-retry" instance.process.flow_label instance.pk %}">
                         {% csrf_token %}
-                        <input type="submit" value="retry">
+                        <input type="submit" value="retry" class="btn btn-success">
                     </form>
                 {% endif %}
             </li>

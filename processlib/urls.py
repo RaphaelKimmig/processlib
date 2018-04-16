@@ -2,7 +2,8 @@ from django.conf.urls import url
 
 from processlib.views import (ProcessListView, ProcessDetailView, ProcessStartView,
                               ProcessActivityView,
-                              ActivityUndoView, ActivityCancelView, ActivityRetryView)
+                              ActivityUndoView, ActivityCancelView, ActivityRetryView,
+                              ProcessCancelView)
 
 urlpatterns = [
     url(r'^process/$', ProcessListView.as_view(), name='process-list'),
@@ -16,4 +17,5 @@ urlpatterns = [
     url(r'^process/retry/(?P<flow_label>[^/]+)/(?P<activity_id>.*)/$',
         ActivityRetryView.as_view(), name='activity-retry'),
     url(r'^process/(?P<pk>.*)/$', ProcessDetailView.as_view(), name='process-detail'),
+    url(r'^process/(?P<pk>.*)/cancel$', ProcessCancelView.as_view(), name='process-cancel'),
 ]

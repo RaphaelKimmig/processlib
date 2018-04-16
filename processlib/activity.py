@@ -196,7 +196,7 @@ class EndActivity(Activity):
         self.finish()
 
     def finish(self, **kwargs):
-        from models import ActivityInstance
+        from .models import ActivityInstance
         super(EndActivity, self).finish(**kwargs)
 
         update_fields = []
