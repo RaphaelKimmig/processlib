@@ -203,7 +203,6 @@ class EndActivity(Activity):
         self.finish()
 
     def finish(self, **kwargs):
-        from .models import ActivityInstance
         super(EndActivity, self).finish(**kwargs)
 
         update_fields = []
@@ -211,8 +210,8 @@ class EndActivity(Activity):
             self.process.finished_at = self.instance.finished_at
             update_fields.append('finished_at')
 
-        if not self.process.status == ActivityInstance.STATUS_FINISHED:
-            self.process.status = ActivityInstance.STATUS_FINISHED
+        if not self.process.status == self.process.STATUS_FINISHED:
+            self.process.status = self.process.STATUS_FINISHED
             update_fields.append('status')
 
         self.process.save(update_fields=update_fields)
@@ -256,7 +255,7 @@ class Wait(Activity):
         for candidate in candidates:
             # FIXME this only corrects for simple loops, may fail with more complex scenarios
             if not candidate.successors.filter(status=candidate.STATUS_FINISHED,
-                                               activity_name=self.name ).exists():
+                                               activity_name=self.name).exists():
                 return candidate
 
         raise self.flow.activity_model.DoesNotExist()

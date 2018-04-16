@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+
 from six import python_2_unicode_compatible
 
 
@@ -20,13 +21,17 @@ def validate_flow_label(value):
 
 @python_2_unicode_compatible
 class Process(models.Model):
+    STATUS_STARTED = 'started'
+    STATUS_CANCELED = 'canceled'
+    STATUS_FINISHED = 'finished'
+
+    status = models.CharField(default=STATUS_STARTED, max_length=16)
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     flow_label = models.CharField(max_length=255, validators=[validate_flow_label])
 
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
-
-    status = models.CharField(max_length=255, default='')
 
     @property
     def activity_instances(self):
@@ -42,8 +47,7 @@ class Process(models.Model):
         return self.flow.process_model._default_manager.get(pk=self.pk)
 
     def can_cancel(self, user=None):
-        return self.status not in (ActivityInstance.STATUS_FINISHED,
-                                   ActivityInstance.STATUS_CANCELED)
+        return self.status not in (self.STATUS_FINISHED, self.STATUS_CANCELED)
 
     @property
     def description(self):
@@ -104,7 +108,7 @@ class ActivityInstance(models.Model):
 
     @property
     def has_active_successors(self):
-        return self.successors.exclude(status=STATUS_ERROR).exists()
+        return self.successors.exclude(status=self.STATUS_ERROR).exists()
 
     @property
     def activity(self):

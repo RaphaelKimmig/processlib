@@ -1,5 +1,6 @@
 from .flow import get_flow
-from .models import ActivityInstance, Process
+from .models import Process
+
 
 
 def get_process_for_flow(flow_label, process_id):
@@ -18,19 +19,19 @@ def get_current_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
     return (
         instance.activity for instance in instances.exclude(
-        status__in=(ActivityInstance.STATUS_FINISHED, ActivityInstance.STATUS_CANCELED))
+        status__in=(process.STATUS_FINISHED, process.STATUS_CANCELED))
     )
 
 
 def get_finished_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
     return (
-        instance.activity for instance in instances.filter(status=ActivityInstance.STATUS_FINISHED)
+        instance.activity for instance in instances.filter(status=process.STATUS_FINISHED)
     )
 
 
 def get_user_processes(user):
-    return Process.objects.filter(status=ActivityInstance.STATUS_STARTED)
+    return Process.objects.filter(status=Process.STATUS_STARTED)
 
 
 def cancel_and_undo_predecessors(activity):
@@ -46,5 +47,5 @@ def cancel_process(process):
     for activity in activities:
         activity.cancel()
 
-    process.status = ActivityInstance.STATUS_CANCELED
+    process.status = Process.STATUS_CANCELED
     process.save()
