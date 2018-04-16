@@ -14,24 +14,24 @@
                     Started {{ process.started_at}}{% if process.finished_at is not None %}}, finished {{ process.finished_at }}{% endif %}
                 </p>
 
-                {% with activities=process|get_current_activities_in_process %}
-                    {% if activities %}
+                {% for activity in process|get_current_activities_in_process %}
+                    {% if forloop.first %}
                     <strong>Next up</strong>
                     <ul>
-                        {% for activity in activities %}
-                            <li>
-                                {% with url=activity.get_absolute_url %}
-                                    {% if url %}
-                                        <a href="{{ url }}">{{ activity }}</a>
-                                    {% else %}
-                                        {{ activity }}
-                                    {% endif %}
-                                {% endwith %}
-                            </li>
-                        {% endfor %}
+                    {% endif %}
+                        <li>
+                            {% with url=activity.get_absolute_url %}
+                                {% if url %}
+                                    <a href="{{ url }}">{{ activity }}</a>
+                                {% else %}
+                                    {{ activity }}
+                                {% endif %}
+                            {% endwith %}
+                        </li>
+                    {% if forloop.last %}
                     </ul>
                     {% endif %}
-                {% endwith %}
+                    {% endfor %}
             </li>
         {% endwith %}
         {% endfor %}
