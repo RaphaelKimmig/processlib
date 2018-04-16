@@ -27,17 +27,19 @@
             <li>
                 {{ instance.activity }}
                 ({{ instance.status }}), started {{ instance.started_at }}, finished {{ instance.finished_at }}
-                {% if instance.status == instance.STATUS_FINISHED %}
-                    <form method="post" action="{% url "processlib:activity-undo" instance.process.flow_label instance.pk %}">
-                        {% csrf_token %}
-                        <input type="submit" value="undo" class="btn btn-warning">
-                    </form>
-                {% endif %}
-                {% if instance.status == instance.STATUS_INSTANTIATED or instance.status == instance.STATUS_ERROR %}
-                    <form method="post" action="{% url "processlib:activity-cancel" instance.process.flow_label instance.pk %}">
-                        {% csrf_token %}
-                        <input type="submit" value="cancel" class="btn btn-danger">
-                    </form>
+                {% if not instance.has_active_successors %}
+                    {% if instance.status == instance.STATUS_FINISHED %}
+                        <form method="post" action="{% url "processlib:activity-undo" instance.process.flow_label instance.pk %}">
+                            {% csrf_token %}
+                            <input type="submit" value="undo" class="btn btn-warning">
+                        </form>
+                    {% endif %}
+                    {% if instance.status == instance.STATUS_INSTANTIATED or instance.status == instance.STATUS_ERROR %}
+                        <form method="post" action="{% url "processlib:activity-cancel" instance.process.flow_label instance.pk %}">
+                            {% csrf_token %}
+                            <input type="submit" value="cancel" class="btn btn-danger">
+                        </form>
+                    {% endif %}
                 {% endif %}
                 {% if instance.status == instance.STATUS_ERROR or instance.status == instance.STATUS_INSTANTIATED and not instance.activity.has_view %}
                     <form method="post" action="{% url "processlib:activity-retry" instance.process.flow_label instance.pk %}">
@@ -49,7 +51,6 @@
         {% endfor %}
     </ul>
     <h2>Steps</h2>
-
     <ul>
         {% for activity in current_activities %}
             <li>

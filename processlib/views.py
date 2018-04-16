@@ -8,9 +8,9 @@ from rest_framework import viewsets
 
 from .flow import (Flow, get_flows, get_flow)
 from .models import Process, ActivityInstance
+from .serializers import ProcessSerializer
 from .services import (get_process_for_flow, get_current_activities_in_process,
                        get_activity_for_flow)
-from .serializers import ProcessSerializer
 
 
 class CurrentAppMixin(object):
@@ -81,6 +81,15 @@ class ProcessListView(CurrentAppMixin, ListView):
     context_object_name = 'process_list'
     queryset = Process.objects.all()
     detail_view_name = 'processlib:process-detail'
+
+    def get_queryset(self):
+        qs = super(ProcessListView, self).get_queryset()
+        status = self.request.GET.get('status', ActivityInstance.STATUS_STARTED)
+
+        if status:
+            qs = qs.filter(status=status)
+
+        return qs
 
     def get_context_data(self, **kwargs):
         kwargs['flows'] = get_flows()
