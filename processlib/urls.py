@@ -1,12 +1,15 @@
 from django.conf.urls import url
 
 from processlib.views import (ProcessListView, ProcessDetailView, ProcessStartView,
-                              ProcessActivityView,
+                              ProcessActivityView, UserCurrentProcessListView, UserProcessListView,
                               ActivityUndoView, ActivityCancelView, ActivityRetryView,
                               ProcessCancelView)
 
 urlpatterns = [
     url(r'^process/$', ProcessListView.as_view(), name='process-list'),
+    url(r'^process/user-current/$', UserCurrentProcessListView.as_view(),
+        name='process-list-user-current'),
+    url(r'^process/user/$', UserProcessListView.as_view(), name='process-list-user'),
     url(r'^process/start/(?P<flow_label>.*)/$', ProcessStartView.as_view(), name='process-start'),
     url(r'^process/activity/(?P<flow_label>[^/]+)/(?P<activity_id>.*)/$',
         ProcessActivityView.as_view(), name='process-activity'),

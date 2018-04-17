@@ -4,8 +4,7 @@
 {% block title %}{{ process }}{% endblock %}
 
 {% block content %}
-    <h1>{{ process }}</h1>
-    <p>{{ process.description }}</p>
+    <h1>{{ process.description }}</h1>
 
     <p>
     <a class="btn btn-default" href="{% url list_view_name %}">List</a>
@@ -55,9 +54,11 @@
         {% for activity in current_activities %}
             <li>
                 {% if activity.has_view %}
-                    <a href="{% url "processlib:process-activity" activity.flow.label activity.instance.pk %}">{{ activity.name }}</a>
+                    <a class="btn btn-primary" href="{% url "processlib:process-activity" activity.flow.label activity.instance.pk %}">
+                        {{ activity }}
+                    </a>
                 {% else %}
-                    {{ activity.name }}
+                    {{ activity }}
                 {% endif %}
             </li>
         {% endfor %}

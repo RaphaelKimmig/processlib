@@ -1,5 +1,7 @@
+from django.db.models import Q
+
 from .flow import get_flow
-from .models import Process
+from .models import Process, ActivityInstance
 
 
 
@@ -30,10 +32,6 @@ def get_finished_activities_in_process(process):
     )
 
 
-def get_user_processes(user):
-    return Process.objects.filter(status=Process.STATUS_STARTED)
-
-
 def cancel_and_undo_predecessors(activity):
     activity.cancel()
     for instance in activity.instance.predecessors.all():
@@ -49,3 +47,21 @@ def cancel_process(process):
 
     process.status = Process.STATUS_CANCELED
     process.save()
+
+
+def get_user_processes(user):
+    return Process.objects.filter(
+        Q(_activity_instances__assigned_group__in=user.groups.all()) &
+        ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED) |
+        Q(_activity_instances__assigned_user=user) &
+        ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED)
+    ).distinct()
+
+
+def get_user_current_processes(user):
+    return Process.objects.filter(status=Process.STATUS_STARTED).filter(
+        Q(_activity_instances__assigned_group__in=user.groups.all(),
+          _activity_instances__status=ActivityInstance.STATUS_INSTANTIATED) |
+        Q(_activity_instances__assigned_user=user,
+          _activity_instances__status=ActivityInstance.STATUS_INSTANTIATED),
+        ).distinct()

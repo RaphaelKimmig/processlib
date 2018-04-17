@@ -1,4 +1,5 @@
 import uuid
+import string
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -17,6 +18,15 @@ def validate_flow_label(value):
             value, ', '.join(_FLOWS.keys())
         ))
     return value
+
+
+def is_format_string(value):
+    try:
+        parsed = next(string.Formatter().parse(str(value)))
+    except ValueError:
+        return False
+
+    return parsed[1] is not None
 
 
 @python_2_unicode_compatible
@@ -38,9 +48,11 @@ class Process(models.Model):
         return self.flow.activity_model._default_manager.filter(process_id=self.pk)
 
     def __str__(self):
-        if self.flow:
-            return "{} {}".format(str(self.flow), str(self.id))
-        return str(self.id)
+        if not self.flow:
+            return str(self.id)
+        if self.flow.verbose_name:
+            return str(self.flow.verbose_name)
+        return self.flow.name
 
     @property
     def full(self):
@@ -51,14 +63,13 @@ class Process(models.Model):
 
     @property
     def description(self):
+        flow_description = str(self.flow.description or self.flow)
+        if not is_format_string(flow_description):
+            return flow_description
         try:
-            return self.flow.description.format(process=self)
+            return flow_description.format(process=self)
         except KeyError:
-            try:
-                return self.flow.description.format(process=self.full)
-            except KeyError:
-                pass
-        return self.flow.description
+            return flow_description.format(process=self.full)
 
     @property
     def flow(self):

@@ -10,7 +10,7 @@ from .flow import (Flow, get_flows, get_flow)
 from .models import Process, ActivityInstance
 from .serializers import ProcessSerializer
 from .services import (get_process_for_flow, get_current_activities_in_process,
-                       get_activity_for_flow)
+                       get_user_processes, get_user_current_processes, get_activity_for_flow)
 
 
 class CurrentAppMixin(object):
@@ -95,6 +95,28 @@ class ProcessListView(CurrentAppMixin, ListView):
         kwargs['flows'] = get_flows()
         kwargs['detail_view_name'] = self.detail_view_name
         return super(ProcessListView, self).get_context_data(**kwargs)
+
+
+class UserProcessListView(ProcessListView):
+    def get_queryset(self):
+        qs = get_user_processes(self.request.user)
+        status = self.request.GET.get('status', '')
+
+        if status:
+            qs = qs.filter(status=status)
+
+        return qs
+
+
+class UserCurrentProcessListView(ProcessListView):
+    def get_queryset(self):
+        qs = get_user_current_processes(self.request.user)
+        status = self.request.GET.get('status', '')
+
+        if status:
+            qs = qs.filter(status=status)
+
+        return qs
 
 
 class ProcessDetailView(DetailView):

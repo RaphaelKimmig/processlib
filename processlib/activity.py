@@ -15,7 +15,7 @@ class Activity(object):
         self.name = name
         self.instance = instance
         self._skip = skip_if
-        self.assign_to = assign_to
+        self._get_assignment = assign_to
 
     def should_skip(self):
         if not self._skip:
@@ -38,7 +38,7 @@ class Activity(object):
         assert not self.instance
         instance_kwargs = instance_kwargs or {}
 
-        user, group = self.assign_to(predecessor=predecessor)
+        user, group = self._get_assignment(predecessor=predecessor)
         if 'assigned_user' not in instance_kwargs:
             instance_kwargs['assigned_user'] = user
         if 'assigned_group' not in instance_kwargs:
@@ -52,6 +52,11 @@ class Activity(object):
         self.instance.save()
         if predecessor:
             self.instance.predecessors.add(predecessor.instance)
+
+    def assign_to(self, user, group):
+        self.instance.assigned_user = user
+        self.instance.assigned_group = group
+        self.instance.save()
 
     def start(self, **kwargs):
         assert self.instance.status in (self.instance.STATUS_INSTANTIATED,
@@ -181,7 +186,7 @@ class StartMixin(Activity):
         assert not self.instance
         assert not predecessor
         instance_kwargs = instance_kwargs or {}
-        user, group = self.assign_to(predecessor=predecessor)
+        user, group = self._get_assignment(predecessor=predecessor)
         if 'assigned_user' not in instance_kwargs:
             instance_kwargs['assigned_user'] = user
         if 'assigned_group' not in instance_kwargs:

@@ -6,8 +6,8 @@ register = template.Library()
 
 
 @register.simple_tag
-def get_user_process_count(user):
-    return len(services.get_user_processes(user))
+def get_user_current_process_count(user):
+    return len(services.get_user_current_processes(user))
 
 
 @register.filter
