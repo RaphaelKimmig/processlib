@@ -1,12 +1,14 @@
 from django.contrib import messages
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.template import TemplateDoesNotExist
+from django.template.loader import get_template
 from django.urls import reverse
+from django.utils.translation import ugettext_lazy as _
 from django.views import View
-from django.views.generic import ListView, DetailView, FormView, UpdateView
+from django.views.generic import ListView, DetailView, UpdateView
 from rest_framework import viewsets
 
-from .flow import (Flow, get_flows, get_flow)
+from .flow import (get_flows, get_flow)
 from .models import Process, ActivityInstance
 from .serializers import ProcessSerializer
 from .services import (get_process_for_flow, get_current_activities_in_process,
@@ -29,58 +31,14 @@ class CurrentAppMixin(object):
         return HttpResponseRedirect(url)
 
 
-class LinearFormFlowView(CurrentAppMixin, View):
-    process_id = None
-    flow = None
-    template_name = 'processlib/step.html'
-    view_name = None
-    process = None
-
-    def get_start_activity(self, process_kwargs):
-        return self.flow.get_start_activity(process_kwargs=process_kwargs)
-
-    def get_next_activity(self, **kwargs):
-        if self.kwargs.get('process_id'):
-            # FIXME breaks for multiple
-            process = get_process_for_flow(self.flow.label, self.kwargs['process_id'])
-            candidates = get_current_activities_in_process(process)
-            activity = next(candidates)
-        else:
-            activity = self.get_start_activity(process_kwargs=kwargs)
-        return activity
-
-    def get(self, request, **kwargs):
-        activity = self.get_next_activity()
-        activity.start()
-
-        form = activity.get_form(instance=activity.process)
-
-        return render(request, self.template_name, {'process': activity.process, 'form': form})
-
-    def post(self, request, **kwargs):
-        activity = self.get_next_activity()
-        activity.start()
-
-        form = activity.get_form(data=request.POST, instance=activity.process)
-
-        if not form.is_valid():
-            return render(request, self.template_name, {'process': activity.process, 'form': form})
-
-        form.save()
-        activity.finish()
-
-        return self.redirect(self.get_next_url(activity))  # FIXME success page and so on?
-
-    def get_next_url(self, control):
-        return reverse(self.view_name, kwargs={
-            'process_id': control.process.id,
-        }, current_app=self.get_current_app())
-
-
 class ProcessListView(CurrentAppMixin, ListView):
     context_object_name = 'process_list'
     queryset = Process.objects.all()
     detail_view_name = 'processlib:process-detail'
+    title = _("Processes")
+
+    def get_title(self):
+        return self.title
 
     def get_queryset(self):
         qs = super(ProcessListView, self).get_queryset()
@@ -93,11 +51,14 @@ class ProcessListView(CurrentAppMixin, ListView):
 
     def get_context_data(self, **kwargs):
         kwargs['flows'] = get_flows()
+        kwargs['title'] = self.get_title()
         kwargs['detail_view_name'] = self.detail_view_name
         return super(ProcessListView, self).get_context_data(**kwargs)
 
 
 class UserProcessListView(ProcessListView):
+    title = _("My processes")
+
     def get_queryset(self):
         qs = get_user_processes(self.request.user)
         status = self.request.GET.get('status', '')
@@ -109,6 +70,8 @@ class UserProcessListView(ProcessListView):
 
 
 class UserCurrentProcessListView(ProcessListView):
+    title = _("My current processes")
+
     def get_queryset(self):
         qs = get_user_current_processes(self.request.user)
         status = self.request.GET.get('status', '')
@@ -133,9 +96,18 @@ class ProcessDetailView(DetailView):
         process = super(ProcessDetailView, self).get_object(queryset)
         return process.flow.process_model.objects.get(pk=process.pk)
 
+    def get_extra_detail_template_name(self):
+        template_name = "processlib/extra_detail_{}.html".format(self.object.flow.label)
+        try:
+            get_template(template_name)
+        except TemplateDoesNotExist:
+            return None
+        return template_name
+
     def get_context_data(self, **kwargs):
         kwargs['list_view_name'] = self.list_view_name
         kwargs['current_activities'] = get_current_activities_in_process(self.object)
+        kwargs['extra_detail_template_name'] = self.get_extra_detail_template_name()
         kwargs['activity_instances'] = (
             self.object.flow.activity_model._default_manager.filter(process_id=self.object.pk)
                 .exclude(status=ActivityInstance.STATUS_CANCELED)

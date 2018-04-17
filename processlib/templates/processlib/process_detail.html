@@ -4,63 +4,83 @@
 {% block title %}{{ process }}{% endblock %}
 
 {% block content %}
-    <h1>{{ process.description }}</h1>
+    <div class="process-detail">
+        <h1>{{ process }}</h1>
 
-    <p>
-    <a class="btn btn-default" href="{% url list_view_name %}">List</a>
-    {% if process.can_cancel %}
-        <a class="btn btn-danger" href="{% url 'processlib:process-cancel' process.pk %}">{% trans "Cancel" %}</a>
-    {% endif %}
-    </p>
+        <div class="pull-right">
+            {% if process.can_cancel %}
+                <a class="btn btn-danger" href="{% url 'processlib:process-cancel' process.pk %}">{% trans "Cancel" %}</a>
+            {% endif %}
+        </div>
 
-    <dl>
-        <dt>Flow</dt><dd>{{ process.flow }}</dd>
-        <dt>Status</dt><dd>{{ process.status }}</dd>
-        <dt>Started at</dt><dd>{{ process.started_at }}</dd>
-        <dt>Finished at</dt><dd>{{ process.finished_at }}</dd>
-    </dl>
-
-    <h2>Activities</h2>
-    <ul>
-        {% for instance in activity_instances %}
-            <li>
-                {{ instance.activity }}
-                ({{ instance.status }}), started {{ instance.started_at }}, finished {{ instance.finished_at }}
-                {% if not instance.has_active_successors %}
-                    {% if instance.status == instance.STATUS_FINISHED %}
-                        <form method="post" action="{% url "processlib:activity-undo" instance.process.flow_label instance.pk %}">
-                            {% csrf_token %}
-                            <input type="submit" value="undo" class="btn btn-warning">
-                        </form>
+        <div class="row">
+            <div class="col-xs-12">
+                <dl class="dl-horizontal">
+                    <dt>{% trans "Description" %}</dt>
+                    <dd>{{ process.description }}</dd>
+                    <dt>{% trans "Status" %}</dt>
+                    <dd>{{ process.get_status_display }}</dd>
+                    <dt>{% trans "Started at" %}</dt>
+                    <dd>{{ process.started_at }}</dd>
+                    {% if process.finished_at %}
+                        <dt>{% trans "Finished at" %}</dt>
+                        <dd>{{ process.finished_at }}</dd>
                     {% endif %}
-                    {% if instance.status == instance.STATUS_INSTANTIATED or instance.status == instance.STATUS_ERROR %}
-                        <form method="post" action="{% url "processlib:activity-cancel" instance.process.flow_label instance.pk %}">
-                            {% csrf_token %}
-                            <input type="submit" value="cancel" class="btn btn-danger">
-                        </form>
+                </dl>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h2>{% trans "History" %}</h2>
+                <ul>
+                    {% for instance in activity_instances %}
+                        <li>
+                            {{ instance.activity }}
+                            ({{ instance.status }}), started {{ instance.started_at }}, finished {{ instance.finished_at }}
+                            {% if not instance.has_active_successors and process.status != process.STATUS_FINISHED %}
+                                {% if instance.status == instance.STATUS_FINISHED %}
+                                    <form method="post" action="{% url "processlib:activity-undo" instance.process.flow_label instance.pk %}">
+                                        {% csrf_token %}
+                                        <input type="submit" value="undo" class="btn btn-warning">
+                                    </form>
+                                {% endif %}
+                                {% if instance.status == instance.STATUS_INSTANTIATED or instance.status == instance.STATUS_ERROR %}
+                                    <form method="post" action="{% url "processlib:activity-cancel" instance.process.flow_label instance.pk %}">
+                                        {% csrf_token %}
+                                        <input type="submit" value="cancel" class="btn btn-danger">
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                            {% if instance.status == instance.STATUS_ERROR or instance.status == instance.STATUS_INSTANTIATED and not instance.activity.has_view %}
+                                <form method="post" action="{% url "processlib:activity-retry" instance.process.flow_label instance.pk %}">
+                                    {% csrf_token %}
+                                    <input type="submit" value="retry" class="btn btn-success">
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h2>{% trans "Current activities" %}</h2>
+                {% for activity in current_activities %}
+                    {% if activity.has_view %}
+                        <a class="btn btn-primary" href="{% url "processlib:process-activity" activity.flow.label activity.instance.pk %}">
+                            {{ activity }}
+                        </a>
+                    {% else %}
+                        <span>{{ activity }}</span>
                     {% endif %}
-                {% endif %}
-                {% if instance.status == instance.STATUS_ERROR or instance.status == instance.STATUS_INSTANTIATED and not instance.activity.has_view %}
-                    <form method="post" action="{% url "processlib:activity-retry" instance.process.flow_label instance.pk %}">
-                        {% csrf_token %}
-                        <input type="submit" value="retry" class="btn btn-success">
-                    </form>
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-    <h2>Steps</h2>
-    <ul>
-        {% for activity in current_activities %}
-            <li>
-                {% if activity.has_view %}
-                    <a class="btn btn-primary" href="{% url "processlib:process-activity" activity.flow.label activity.instance.pk %}">
-                        {{ activity }}
-                    </a>
-                {% else %}
-                    {{ activity }}
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
+                {% empty %}
+                    {% trans "There are no current activities in this process." %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% block extra_detail %}
+        {% if extra_detail_template_name %}
+        {% include extra_detail_template_name %}
+        {% endif %}
+    {% endblock %}
 {% endblock %}

@@ -1,53 +1,29 @@
 {% extends "processlib/layout.html" %}
 {% load processlib_tags %}
+{% load i18n %}
 
 {% block content %}
-    <h1>Processes</h1>
-    <ul>
+    <div class="process-list">
+        <h1>{{ title }}</h1>
         {% for process in process_list %}
-        {% with process=process.full %}
-            <li>
-                <a href="{% url detail_view_name process.pk %}">{{ process }}</a>
-                <p>
-                    {{ process.description }} <strong>({{process.status}})</strong>
-                    <br>
-                    Started {{ process.started_at}}{% if process.finished_at is not None %}}, finished {{ process.finished_at }}{% endif %}
-                </p>
+            {% with process=process.full %}
+                {% include "processlib/process_list_item.html" %}
 
-                {% for activity in process|get_current_activities_in_process %}
-                    {% if forloop.first %}
-                    <strong>Next up</strong>
-                    <ul>
-                    {% endif %}
-                        <li>
-                            {% with url=activity.get_absolute_url %}
-                                {% if url %}
-                                    <a href="{{ url }}">{{ activity }}</a>
-                                {% else %}
-                                    {{ activity }}
-                                {% endif %}
-                            {% endwith %}
-                        </li>
-                    {% if forloop.last %}
-                    </ul>
-                    {% endif %}
-                    {% endfor %}
-            </li>
-        {% endwith %}
+            {% endwith %}
         {% endfor %}
-    </ul>
 
-    <h2>Flows</h2>
-    <ul>
-        {% for label, flow in flows %}
-            {% if flow.get_start_activity.has_view %}
-            <li>
-                <form action="{% url "processlib:process-start" label %}" method="post">
-                    {% csrf_token %}
-                    <input type="submit" name="start" value="Start {{ flow }}">
-                </form>
-            </li>
-            {% endif %}
-        {% endfor %}
-    </ul>
+        <h2>Flows</h2>
+        <ul>
+            {% for label, flow in flows %}
+                {% if flow.get_start_activity.has_view %}
+                    <li>
+                        <form action="{% url "processlib:process-start" label %}" method="post">
+                            {% csrf_token %}
+                            <input type="submit" name="start" value="Start {{ flow }}">
+                        </form>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
 {% endblock %}

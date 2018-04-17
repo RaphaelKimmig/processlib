@@ -35,7 +35,13 @@ class Process(models.Model):
     STATUS_CANCELED = 'canceled'
     STATUS_FINISHED = 'finished'
 
-    status = models.CharField(default=STATUS_STARTED, max_length=16)
+    STATUS_CHOICES = (
+        (STATUS_STARTED, _("started")),
+        (STATUS_CANCELED, _("canceled")),
+        (STATUS_FINISHED, _("finished")),
+    )
+
+    status = models.CharField(default=STATUS_STARTED, max_length=16, choices=STATUS_CHOICES)
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     flow_label = models.CharField(max_length=255, validators=[validate_flow_label])
@@ -91,7 +97,16 @@ class ActivityInstance(models.Model):
     STATUS_FINISHED = 'finished'
     STATUS_ERROR = 'error'
 
-    status = models.CharField(default=STATUS_INSTANTIATED, max_length=16)
+    STATUS_CHOICES = (
+        (STATUS_INSTANTIATED, _("instantiated")),
+        (STATUS_SCHEDULED, _("scheduled")),
+        (STATUS_STARTED, _("started")),
+        (STATUS_CANCELED, _("canceled")),
+        (STATUS_FINISHED, _("finished")),
+        (STATUS_ERROR, _("error")),
+    )
+
+    status = models.CharField(default=STATUS_INSTANTIATED, max_length=16, choices=STATUS_CHOICES)
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     process = models.ForeignKey(Process, related_name='_activity_instances',
