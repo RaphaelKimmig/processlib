@@ -9,7 +9,9 @@
 
         <div class="pull-right">
             {% if process.can_cancel %}
-                <a class="btn btn-danger" href="{% url 'processlib:process-cancel' process.pk %}">{% trans "Cancel" %}</a>
+                <a class="btn btn-danger" href="{% url 'processlib:process-cancel' process.pk %}">
+                    {% blocktrans with process=process %}Cancel {{ process }}{% endblocktrans %}
+                </a>
             {% endif %}
         </div>
 
