@@ -1,12 +1,13 @@
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
+from processlib.assignment import inherit
 from processlib.tasks import run_async_activity
 
 
 class Activity(object):
     def __init__(self, flow, process, instance, name, verbose_name=None, permissions=None,
-                 skip_if=None):
+                 skip_if=None, assign_to=inherit):
         self.flow = flow
         self.process = process
         self.verbose_name = verbose_name
@@ -14,6 +15,7 @@ class Activity(object):
         self.name = name
         self.instance = instance
         self._skip = skip_if
+        self.assign_to = assign_to
 
     def should_skip(self):
         if not self._skip:
@@ -34,6 +36,14 @@ class Activity(object):
 
     def instantiate(self, predecessor=None, instance_kwargs=None, **kwargs):
         assert not self.instance
+        instance_kwargs = instance_kwargs or {}
+
+        user, group = self.assign_to(predecessor=predecessor)
+        if 'assigned_user' not in instance_kwargs:
+            instance_kwargs['assigned_user'] = user
+        if 'assigned_group' not in instance_kwargs:
+            instance_kwargs['assigned_group'] = group
+
         self.instance = self.flow.activity_model(
             process=self.process,
             activity_name=self.name,
@@ -170,6 +180,13 @@ class StartMixin(Activity):
     def instantiate(self, predecessor=None, instance_kwargs=None, **kwargs):
         assert not self.instance
         assert not predecessor
+        instance_kwargs = instance_kwargs or {}
+        user, group = self.assign_to(predecessor=predecessor)
+        if 'assigned_user' not in instance_kwargs:
+            instance_kwargs['assigned_user'] = user
+        if 'assigned_group' not in instance_kwargs:
+            instance_kwargs['assigned_group'] = group
+
         self.instance = self.flow.activity_model(
             process=self.process,
             activity_name=self.name,
