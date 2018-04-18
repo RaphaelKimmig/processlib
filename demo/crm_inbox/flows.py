@@ -62,3 +62,12 @@ campaign_flow = Flow(
 ).and_then(
     'success', EndActivity
 )
+
+view_start_flow = Flow(
+    "view_start_flow",
+    verbose_name='A flow with a view'
+).start_with(
+    'start', StartViewActivity,
+).and_then(
+    'success', EndActivity
+)

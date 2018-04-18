@@ -160,7 +160,7 @@ class SimpleViewTest(WebTest):
     def test_list_view_allows_creating(self):
         process_list = self.app.get(reverse('processlib:process-list'))
         for form in process_list.forms.values():
-            if "Start Process an order" in str(form.html):
+            if "Start A flow with a view" in str(form.html):
                 response = form.submit()
                 break
         else:
