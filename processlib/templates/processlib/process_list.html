@@ -4,6 +4,16 @@
 
 {% block content %}
     <div class="process-list">
+
+        <a href="{% url 'processlib:process-list-user-current' %}" class="btn btn-info btn-small">
+            {% trans "Current processes assigned to me" %}
+        </a>
+        <a href="{% url 'processlib:process-list-user' %}" class="btn btn-info btn-small">
+            {% trans "All processes assigned to me" %}
+        </a>
+            <a href="{% url 'processlib:process-list' %}" class="btn btn-info btn-small">
+           {% trans "All processes" %}
+        </a>
         <h1>{{ title }}</h1>
         {% for process in process_list %}
             {% with process=process.full %}
