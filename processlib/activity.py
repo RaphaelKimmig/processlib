@@ -1,4 +1,10 @@
-from django.core.urlresolvers import reverse
+import django
+
+if django.VERSION[0] < 2:
+    from django.core.urlresolvers import reverse
+else:
+    from django.urls import reverse
+
 from django.utils import timezone
 
 from processlib.assignment import inherit

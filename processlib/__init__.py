@@ -5,4 +5,7 @@ def autodiscover_flows():
     autodiscover_modules('flows')
 
 
-__all__ = ['autodiscover_flows']
+# default_app_config = 'processlib.apps.ProcesslibAppConfig'
+
+
+__all__ = ['autodiscover_flows', ]
