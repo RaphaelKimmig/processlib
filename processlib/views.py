@@ -277,3 +277,7 @@ class ProcessViewSet(viewsets.ModelViewSet):
             class Meta(ProcessSerializer.Meta):
                 model = self.get_process_model()
         return DynamicSerializer
+
+
+class ProcessUpdateView(ActivityMixin, UpdateView):
+    pass
