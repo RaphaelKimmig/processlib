@@ -134,7 +134,7 @@ class ActivityInstance(models.Model):
 
     @property
     def has_active_successors(self):
-        return self.successors.exclude(status=self.STATUS_ERROR).exists()
+        return self.successors.exclude(status=self.STATUS_CANCELED).exists()
 
     @property
     def activity(self):
