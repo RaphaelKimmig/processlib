@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponseRedirect
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
@@ -146,7 +147,7 @@ class ProcessStartView(CurrentAppMixin, View):
     def dispatch(self, request, *args, **kwargs):
         self.activity = self.get_activity()
         if self.activity.has_view():
-            return self.activity.dispatch(self.activity, request, *args, **kwargs)
+            return self.activity.dispatch(request, *args, **kwargs)
         else:
             return super(ProcessStartView, self).dispatch(request, *args, **kwargs)
 
@@ -220,7 +221,10 @@ class ActivityMixin(CurrentAppMixin):
     activity = None
 
     def get_template_names(self):
-        names = super(CurrentAppMixin, self).get_template_names()
+        try:
+            names = super(CurrentAppMixin, self).get_template_names()
+        except ImproperlyConfigured:
+            names = []
         return names + ['processlib/view_activity.html']
 
     def get_context_data(self, **kwargs):
@@ -230,9 +234,12 @@ class ActivityMixin(CurrentAppMixin):
     def get_object(self, queryset=None):
         return self.activity.process
 
+    def get_queryset(self, queryset=None):
+        return self.activity.flow.process_model._default_manager.all()
+
     def form_valid(self, *args, **kwargs):
-        response = super(ActivityMixin, self).form_valid(*args, **kwargs)
         self.activity.finish()
+        response = super(ActivityMixin, self).form_valid(*args, **kwargs)
         return response
 
     def dispatch(self, request, *args, **kwargs):
