@@ -2,7 +2,7 @@
 {% block content %}
     <h1>{{ activity }}</h1>
     <a href="{% url 'processlib:process-detail' activity.process.pk %}">{{ activity.process }}</a>
-    <form action="." method="post">
+    <form enctype="multipart/form-data" method="post">
         {% csrf_token %}
         {{ form }}
         <input type="submit" value="ok"/>

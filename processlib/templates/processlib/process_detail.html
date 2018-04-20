@@ -36,10 +36,12 @@
             <div class="col-md-6">
                 <h2>{% trans "History" %}</h2>
                 <ul>
-                    {% for instance in activity_instances %}
+                    {% for activity in activities %}
                         <li>
-                            {{ instance.activity }}
-                            ({{ instance.status }}), started {{ instance.started_at }}, finished {{ instance.finished_at }}
+                            {% with instance=activity.instance %}
+                            {{ activity }}
+                            ({{ instance.status }}), instantiated {{ instance.instantiated_at }}, started {{ instance.started_at }}, finished {{ instance.finished_at }}
+                        {{ instance.has_active_successors }}
                             {% if not instance.has_active_successors and process.status != process.STATUS_FINISHED %}
                                 {% if instance.status == instance.STATUS_FINISHED %}
                                     <form method="post" action="{% url "processlib:activity-undo" instance.process.flow_label instance.pk %}">
@@ -60,6 +62,7 @@
                                     <input type="submit" value="retry" class="btn btn-success">
                                 </form>
                             {% endif %}
+                            {% endwith %}
                         </li>
                     {% endfor %}
                 </ul>

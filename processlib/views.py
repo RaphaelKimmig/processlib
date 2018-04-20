@@ -11,7 +11,7 @@ from rest_framework import viewsets
 from .flow import (get_flows, get_flow)
 from .models import Process, ActivityInstance
 from .serializers import ProcessSerializer
-from .services import (get_process_for_flow, get_current_activities_in_process,
+from .services import (get_activities_in_process, get_current_activities_in_process,
                        get_user_processes, get_user_current_processes, get_activity_for_flow)
 
 
@@ -108,10 +108,7 @@ class ProcessDetailView(DetailView):
         kwargs['list_view_name'] = self.list_view_name
         kwargs['current_activities'] = get_current_activities_in_process(self.object)
         kwargs['extra_detail_template_name'] = self.get_extra_detail_template_name()
-        kwargs['activity_instances'] = (
-            self.object.flow.activity_model._default_manager.filter(process_id=self.object.pk)
-                .exclude(status=ActivityInstance.STATUS_CANCELED)
-        )
+        kwargs['activities'] = get_activities_in_process(self.object)
         return super(ProcessDetailView, self).get_context_data(**kwargs)
 
 

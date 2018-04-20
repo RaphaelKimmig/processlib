@@ -21,16 +21,24 @@ def get_current_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
     return (
         instance.activity for instance in instances.exclude(
-        status__in=(process.STATUS_FINISHED, process.STATUS_CANCELED))
+        status__in=(process.STATUS_FINISHED, process.STATUS_CANCELED)).order_by('instantiated_at')
     )
 
 
 def get_finished_activities_in_process(process):
-    instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
+    instances = process.flow.activity_model._default_manager.filter(
+        process_id=process.pk).order_by('instantiated_at')
     return (
         instance.activity for instance in instances.filter(status=process.STATUS_FINISHED)
     )
 
+
+def get_activities_in_process(process):
+    instances = process.flow.activity_model._default_manager.filter(
+        process_id=process.pk).order_by('instantiated_at')
+    return (
+        instance.activity for instance in instances.exclude(status=process.STATUS_CANCELED)
+    )
 
 def cancel_and_undo_predecessors(activity):
     activity.cancel()
