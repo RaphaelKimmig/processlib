@@ -116,7 +116,7 @@ class Flow(object):
             **kwargs
         )
 
-    def get_start_activity(self, process_kwargs=None, activity_instance_kwargs=None):
+    def get_start_activity(self, process_kwargs=None, activity_instance_kwargs=None, request=None):
         process = self.process_model(
             flow_label=self.label,
             started_at=timezone.now(),
@@ -124,6 +124,6 @@ class Flow(object):
             **(process_kwargs or {})
         )
         activity = self._get_activity_by_name(process, list(self._activities)[0])
-        activity.instantiate(instance_kwargs=activity_instance_kwargs)
+        activity.instantiate(instance_kwargs=activity_instance_kwargs, request=request)
         return activity
 

@@ -142,7 +142,7 @@ class ProcessStartView(CurrentAppMixin, View):
     def get_activity(self):
         flow_label = self.kwargs['flow_label']
         flow = get_flow(flow_label)
-        return flow.get_start_activity()
+        return flow.get_start_activity(request=self.request)
 
     def dispatch(self, request, *args, **kwargs):
         self.activity = self.get_activity()

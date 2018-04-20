@@ -40,11 +40,13 @@ class Activity(object):
     def __repr__(self):
         return '{}(name="{}")'.format(self.__class__.__name__, self.name)
 
-    def instantiate(self, predecessor=None, instance_kwargs=None, **kwargs):
+    def instantiate(self, predecessor=None, instance_kwargs=None, request=None, **kwargs):
         assert not self.instance
         instance_kwargs = instance_kwargs or {}
 
-        user, group = self._get_assignment(predecessor=predecessor)
+        request_user = request.user if request and request.user.is_authenticated else None
+        user, group = self._get_assignment(request_user=request_user, predecessor=predecessor)
+
         if 'assigned_user' not in instance_kwargs:
             instance_kwargs['assigned_user'] = user
         if 'assigned_group' not in instance_kwargs:
@@ -192,11 +194,13 @@ class AsyncActivity(Activity):
 
 
 class StartMixin(Activity):
-    def instantiate(self, predecessor=None, instance_kwargs=None, **kwargs):
+    def instantiate(self, predecessor=None, instance_kwargs=None, request=None, **kwargs):
         assert not self.instance
         assert not predecessor
         instance_kwargs = instance_kwargs or {}
-        user, group = self._get_assignment(predecessor=predecessor)
+
+        request_user = request.user if request and request.user.is_authenticated else None
+        user, group = self._get_assignment(request_user=request_user, predecessor=predecessor)
         if 'assigned_user' not in instance_kwargs:
             instance_kwargs['assigned_user'] = user
         if 'assigned_group' not in instance_kwargs:

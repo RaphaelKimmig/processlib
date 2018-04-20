@@ -1,12 +1,14 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 
-from activity import ViewActivity
-from .activity import StartActivity, EndActivity, Wait
+from processlib.activity import StartViewActivity
+from processlib.assignment import request_user
+from processlib.views import ProcessUpdateView
+from .activity import StartActivity, EndActivity, ViewActivity, Wait
 from .assignment import inherit, nobody
 from .flow import Flow
-from .services import (get_user_processes, cancel_process, get_user_current_processes,
+from .services import (get_user_processes, get_user_current_processes,
                        get_current_activities_in_process)
 
 User = get_user_model()
@@ -65,6 +67,28 @@ class FlowTest(TestCase):
         self.assertEqual(process.activity_instances.get(activity_name='start').assigned_user, user)
         self.assertEqual(process.activity_instances.get(activity_name='end').assigned_user, None)
 
+    def test_request_user_assignment(self):
+        user = User.objects.create(username='request_user')
+        flow = Flow(
+            "assign_request_user_flow",
+        ).start_with(
+            'start', StartViewActivity,
+            view=ProcessUpdateView.as_view(fields=[]),
+            assign_to=request_user,
+        ).and_then(
+            'end', EndActivity,
+        )
+
+        factory = RequestFactory()
+        request = factory.post('/')
+        request.user = user
+
+        start = flow.get_start_activity(request=request)
+        process = start.process
+
+        start.dispatch(request)
+
+        self.assertEqual(process.activity_instances.get(activity_name='start').assigned_user, user)
 
 user_processes_test_flow = Flow(
     "user_processes_test_flow",

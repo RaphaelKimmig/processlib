@@ -41,8 +41,8 @@
                             {% with instance=activity.instance %}
                             {{ activity }}
                             ({{ instance.status }}), instantiated {{ instance.instantiated_at }}, started {{ instance.started_at }}, finished {{ instance.finished_at }}
-                        {{ instance.has_active_successors }}
-                            {% if not instance.has_active_successors and process.status != process.STATUS_FINISHED %}
+                                assigned user: {{ instance.assigned_user }}, assigned group: {{ instance.assigned_group }}
+                            {% if not instance.has_active_successors and process.status != process.STATUS_FINISHED and process.status != process.STATUS_CANCELED %}
                                 {% if instance.status == instance.STATUS_FINISHED %}
                                     <form method="post" action="{% url "processlib:activity-undo" instance.process.flow_label instance.pk %}">
                                         {% csrf_token %}
