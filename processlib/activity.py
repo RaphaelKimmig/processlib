@@ -91,6 +91,10 @@ class Activity(object):
         self.instance.status = self.instance.STATUS_INSTANTIATED
         self.instance.save()
 
+        undo_callback = getattr(self.process, 'undo_{}'.format(self.name), None)
+        if undo_callback is not None:
+            undo_callback()
+
     def error(self, **kwargs):
         assert self.instance.status != self.instance.STATUS_FINISHED
         self.instance.status = self.instance.STATUS_ERROR
