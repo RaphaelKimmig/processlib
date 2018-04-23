@@ -131,8 +131,11 @@ class State(Activity):
 
 class ViewActivity(Activity):
     def __init__(self, view=None, **kwargs):
-        self.view = view
         super(ViewActivity, self).__init__(**kwargs)
+        if view is None:
+            raise ValueError("A ViewActivity requires a view, non given for {}.{}".format(
+                self.flow.label, self.name))
+        self.view = view
 
     def has_view(self):
         return True

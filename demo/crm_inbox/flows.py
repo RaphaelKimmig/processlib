@@ -2,9 +2,11 @@ from crm_inbox.models import DemoOrderProcess, CampaignParticipationProcess
 from crm_inbox.services import (transmit_order_to_erp, update_campaign_step,
                                 create_event_entry_for_process, create_task_for_process)
 from crm_inbox.views import MatchOrganisationView, MatchPersonView
+
 from processlib.activity import (ViewActivity, AsyncActivity, StartViewActivity, EndActivity,
                                  StartActivity, FunctionActivity, Wait, State)
 from processlib.flow import Flow
+from processlib.views import ProcessUpdateView
 
 erp_order_flow = Flow(
     "erp_order_flow",
@@ -67,7 +69,7 @@ view_start_flow = Flow(
     "view_start_flow",
     verbose_name='A flow with a view'
 ).start_with(
-    'start', StartViewActivity,
+    'start', StartViewActivity, view=ProcessUpdateView.as_view(fields=[]),
 ).and_then(
     'success', EndActivity
 )

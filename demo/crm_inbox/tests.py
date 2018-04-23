@@ -2,9 +2,10 @@ from django.test import TestCase
 from django.urls import reverse
 from django_webtest import WebTest
 
-from crm_inbox.flows import erp_order_flow
-from crm_inbox.models import Person, Organisation, DemoOrderProcess
+from processlib.models import Process
 from processlib.services import get_current_activities_in_process
+from .flows import erp_order_flow
+from .models import Person, Organisation, DemoOrderProcess
 
 
 class FlowTest(TestCase):
@@ -147,7 +148,7 @@ class SimpleViewTest(WebTest):
 
     def test_process_list_links_detail(self):
         process_list = self.app.get(reverse('processlib:process-list'))
-        detail_page = process_list.click(str(self.process_1.id))
+        detail_page = process_list.click(str(self.process_1), index=0)
         self.assertContains(detail_page, self.process_1.id)
         self.assertNotContains(detail_page, self.process_2.id)
 
@@ -166,6 +167,6 @@ class SimpleViewTest(WebTest):
         else:
             raise Exception("Form with start button not found")
 
-        process = DemoOrderProcess.objects.latest('started_at')
+        process = Process.objects.get(flow_label='view_start_flow')
         self.assertContains(response.follow(), process)
 
