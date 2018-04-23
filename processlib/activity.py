@@ -12,12 +12,16 @@ from processlib.tasks import run_async_activity
 
 
 class Activity(object):
-    def __init__(self, flow, process, instance, name, verbose_name=None, permissions=None,
+    def __init__(self, flow, process, instance, name, verbose_name=None,
+                 permission=None, auto_create_permission=True,
+                 permission_name = None,
                  skip_if=None, assign_to=inherit):
         self.flow = flow
         self.process = process
         self.verbose_name = verbose_name
-        self.permissions = permissions
+        self.permission = permission
+        self.auto_create_permission = auto_create_permission
+        self.permission_name = permission_name or verbose_name or name
         self.name = name
         self.instance = instance
         self._skip = skip_if
@@ -269,19 +273,17 @@ class StartFormActivity(StartMixin, FormActivity):
 
 
 class IfElse(Activity):
-    def __init__(self, flow, process, instance, name, description=None, permissions=None,
-                 skip_if=None):
-        super(IfElse, self).__init__(flow, process, instance, name, description, permissions, skip_if)
+    def __init__(self, flow, process, instance, name, **kwargs):
+        super(IfElse, self).__init__(flow, process, instance, name, **kwargs)
 
 
 class Wait(Activity):
-    def __init__(self, flow, process, instance, name, description=None, permissions=None,
-                 skip_if=None, wait_for=None):
-        super(Wait, self).__init__(flow, process, instance, name, description, permissions, skip_if)
-
+    def __init__(self, flow, process, instance, name, **kwargs):
+        wait_for = kwargs.pop('wait_for', None)
         if not wait_for:
             raise ValueError("Wait activity needs to wait for something.")
 
+        super(Wait, self).__init__(flow, process, instance, name, **kwargs)
 
         self._wait_for = set(wait_for) if wait_for else None
 

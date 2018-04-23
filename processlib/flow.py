@@ -33,7 +33,7 @@ def register_flow(flow):
 @python_2_unicode_compatible
 class Flow(object):
     def __init__(self, name, process_model=Process, activity_model=ActivityInstance,
-                 verbose_name='', description=''):
+                 verbose_name='', description='', permission=None, auto_create_permission=True):
         self.name = name
         self.activity_model = activity_model
         self.verbose_name = verbose_name
@@ -44,6 +44,9 @@ class Flow(object):
         self._out_edges = defaultdict(list)
         self.label = flow_label(self)
         self.description = description
+        self.permission = permission
+        self.auto_create_permission = auto_create_permission
+
         register_flow(self)
 
     def copy(self, name, process_model=None, activity_model=None, verbose_name=None):
