@@ -97,6 +97,7 @@ user_processes_test_flow = Flow(
 ).and_then(
     'view', ViewActivity,
     assign_to=nobody,
+    view=ProcessUpdateView.as_view(),
 ).and_then(
     'end', EndActivity,
 )
