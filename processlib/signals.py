@@ -11,6 +11,8 @@ logger = getLogger(__name__)
 
 
 def create_flow_permissions(app_config, **kwargs):
+    autodiscover_flows()
+
     logger.info("creating permissions")
     for label, flow in get_flows():
         process_content_type = ContentType.objects.get_for_model(flow.process_model)
