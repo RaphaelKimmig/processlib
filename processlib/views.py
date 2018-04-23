@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.http import HttpResponseRedirect
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
@@ -13,7 +13,9 @@ from .flow import (get_flows, get_flow)
 from .models import Process, ActivityInstance
 from .serializers import ProcessSerializer
 from .services import (get_activities_in_process, get_current_activities_in_process,
-                       get_user_processes, get_user_current_processes, get_activity_for_flow)
+                       get_user_processes, get_user_current_processes, get_activity_for_flow,
+                       user_has_activity_perm)
+from .services import user_has_any_process_perm
 
 
 class CurrentAppMixin(object):
@@ -95,6 +97,8 @@ class ProcessDetailView(DetailView):
 
     def get_object(self, queryset=None):
         process = super(ProcessDetailView, self).get_object(queryset)
+        if not user_has_any_process_perm(self.request.user, process):
+            raise PermissionDenied
         return process.flow.process_model.objects.get(pk=process.pk)
 
     def get_extra_detail_template_name(self):
@@ -124,6 +128,8 @@ class ProcessCancelView(UpdateView):
 
     def get_object(self, queryset=None):
         process = super(ProcessCancelView, self).get_object(queryset)
+        if not user_has_any_process_perm(self.request.user, process):
+            raise PermissionDenied
         return process.flow.process_model.objects.get(pk=process.pk)
 
     def form_valid(self, form):
@@ -142,7 +148,10 @@ class ProcessStartView(CurrentAppMixin, View):
     def get_activity(self):
         flow_label = self.kwargs['flow_label']
         flow = get_flow(flow_label)
-        return flow.get_start_activity(request=self.request)
+        activity = flow.get_start_activity(request=self.request)
+        if not user_has_activity_perm(self.request.user, activity):
+            raise PermissionDenied
+        return activity
 
     def dispatch(self, request, *args, **kwargs):
         self.activity = self.get_activity()
@@ -157,43 +166,32 @@ class ProcessStartView(CurrentAppMixin, View):
         return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
-class ProcessActivityView(View):
+class ActivityByLabelAndIdMixin(object):
     queryset = ActivityInstance.objects.all()
     activity_id = None
     flow_label = None
 
     def get_activity(self):
-        return get_activity_for_flow(self.kwargs['flow_label'], self.kwargs['activity_id'])
+        activity = get_activity_for_flow(self.kwargs['flow_label'], self.kwargs['activity_id'])
+        if not user_has_activity_perm(self.request.user, activity):
+            raise PermissionDenied
+        return activity
 
+
+class ProcessActivityView(ActivityByLabelAndIdMixin, View):
     def dispatch(self, request, *args, **kwargs):
         self.activity = self.get_activity()
         return self.activity.dispatch(request, *args, **kwargs)
 
 
-class ActivityUndoView(CurrentAppMixin, View):
-    queryset = ActivityInstance.objects.all()
-
-    activity_id = None
-    flow_label = None
-
-    def get_activity(self):
-        return get_activity_for_flow(self.kwargs['flow_label'], self.kwargs['activity_id'])
-
+class ActivityUndoView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
         self.activity.undo()
         return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
-class ActivityRetryView(CurrentAppMixin, View):
-    queryset = ActivityInstance.objects.all()
-
-    activity_id = None
-    flow_label = None
-
-    def get_activity(self):
-        return get_activity_for_flow(self.kwargs['flow_label'], self.kwargs['activity_id'])
-
+class ActivityRetryView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
         if hasattr(self.activity, 'retry'):
@@ -202,15 +200,7 @@ class ActivityRetryView(CurrentAppMixin, View):
         return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
-class ActivityCancelView(CurrentAppMixin, View):
-    queryset = ActivityInstance.objects.all()
-
-    activity_id = None
-    flow_label = None
-
-    def get_activity(self):
-        return get_activity_for_flow(self.kwargs['flow_label'], self.kwargs['activity_id'])
-
+class ActivityCancelView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
         self.activity.cancel()
@@ -218,7 +208,13 @@ class ActivityCancelView(CurrentAppMixin, View):
 
 
 class ActivityMixin(CurrentAppMixin):
+    """
+    Mixin used by view activities, e.g. those defined as an ActivityView.
+    """
     activity = None
+
+    def user_has_perm(self):
+        return user_has_activity_perm(self.request.user, self.activity)
 
     def get_template_names(self):
         try:
@@ -244,6 +240,10 @@ class ActivityMixin(CurrentAppMixin):
 
     def dispatch(self, request, *args, **kwargs):
         self.activity = kwargs['activity']
+
+        if not self.user_has_perm():
+            raise PermissionDenied
+
         self.activity.start()
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
 

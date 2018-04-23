@@ -1,6 +1,8 @@
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from processlib.flow import get_flow
+from processlib.services import user_has_activity_perm
 from .models import Process, ActivityInstance
 
 
@@ -21,6 +23,10 @@ class ProcessSerializer(serializers.ModelSerializer):
         flow = get_flow(flow_label)
         activity = flow.get_start_activity(process_kwargs=validated_data,
                                            activity_instance_kwargs=activity_instance)
+
+        if not user_has_activity_perm(self.context['request'].user, activity):
+            raise PermissionDenied
+
         activity.start(**activity_data)
         activity.finish(**activity_data)
         return activity.process

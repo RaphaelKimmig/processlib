@@ -73,3 +73,30 @@ def get_user_current_processes(user):
         Q(_activity_instances__assigned_user=user,
           _activity_instances__status=ActivityInstance.STATUS_INSTANTIATED),
         ).distinct()
+
+
+def user_has_any_process_perm(user, process):
+    # if there are no required permissions we grant access
+    if not process.flow.has_any_permissions():
+        return True
+
+    if process.flow.permission and user.has_perm(process.flow.permission):
+        return True
+
+    for activity in get_activities_in_process(process):
+        if activity.permission and user.has_perm(activity.permission):
+            return True
+
+    return False
+
+
+def user_has_activity_perm(user, activity):
+    if not activity.permission and not activity.flow.permission:
+        # if there are no required permissions we grant access
+        return True
+    elif activity.permission and activity.flow.permission:
+        return user.has_perm(activity.permission) and user.has_perm(activity.permission)
+    elif activity.permission:
+        return user.has_perm(activity.permission)
+    elif activity.flow.permission:
+        return user.has_perm(activity.flow.permission)
