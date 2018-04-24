@@ -1,10 +1,13 @@
 {% extends "processlib/layout.html" %}
+{% load i18n %}
 {% block content %}
     <h1>{{ activity }}</h1>
     <a href="{% url 'processlib:process-detail' activity.process.pk %}">{{ activity.process }}</a>
     <form enctype="multipart/form-data" method="post">
         {% csrf_token %}
         {{ form }}
-        <input type="submit" value="ok"/>
+        <hr>
+        <input type="submit" name="_go_to_next" value="{% trans "Finish & go to next" %}" class="btn btn-default"/>
+        <input type="submit" value="{% trans "Finish" %}" class="btn btn-primary"/>
     </form>
 {% endblock %}

@@ -248,8 +248,18 @@ class ActivityMixin(CurrentAppMixin):
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
+        if '_go_to_next' in self.request.POST:
+            for activity in get_current_activities_in_process(self.activity.process):
+                if activity.has_view() and user_has_activity_perm(self.request.user, activity):
+                    return reverse('processlib:process-activity',
+                                   kwargs={
+                                       'flow_label': activity.flow.label,
+                                       'activity_id': activity.instance.pk
+                                   },
+                                   current_app=self.get_current_app())
         return reverse('processlib:process-detail', args=(self.activity.process.pk, ),
                        current_app=self.get_current_app())
+
 
 
 class ProcessViewSet(viewsets.ModelViewSet):
