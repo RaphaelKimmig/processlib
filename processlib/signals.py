@@ -33,23 +33,22 @@ def create_flow_permissions(app_config, **kwargs):
                 defaults={'name': str(flow)},
             )
         activity_content_type = ContentType.objects.get_for_model(flow.activity_model)
-        for activity_name, activity in flow._activities.items():
-            activity_kwargs = flow._activity_kwargs[activity_name]
-            permission = activity_kwargs.get('permission', None)
-            if not activity_kwargs.get('auto_create_permission', True) or permission is None:
+        for activity_name in flow._activities:
+            activity = flow._get_activity_by_name(None, activity_name)
+            if not activity.auto_create_permission or activity.permission is None:
                 continue
 
             # split like django
-            app_label, codename = permission.split('.', 1)
+            app_label, codename = activity.permission.split('.', 1)
             if app_label != activity_content_type.app_label:
                 raise ValueError(
                     "The permission {} has an app label {} that "
                     "does not match the activity model's app_label {}".format(
-                        permission, app_label, activity_content_type.app_label,
+                        activity.permission, app_label, activity_content_type.app_label,
                     )
                 )
 
-            name = activity_kwargs.get('verbose_name', '') or activity_name
+            name = activity.verbose_name or activity.name
             Permission.objects.update_or_create(
                 content_type=activity_content_type,
                 codename=codename,

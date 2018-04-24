@@ -50,9 +50,10 @@ class Flow(object):
         register_flow(self)
 
     def has_any_permissions(self):
-        return self.permission or any(a.get('permission', None)
-                                      for a in self._activity_kwargs.values())
-
+        return self.permission or any(
+            self._get_activity_by_name(None, activity_name).permission
+            for activity_name in self._activities
+        )
     def copy(self, name, process_model=None, activity_model=None, verbose_name=None):
         copy = deepcopy(self)
         copy.name = name
