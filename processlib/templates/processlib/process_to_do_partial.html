@@ -1,0 +1,28 @@
+{% load i18n %}
+{% load processlib_tags %}
+{% get_activities_to_do request.user process as to_do %}
+{% if process.status == process.STATUS_CANCELED %}
+    {% trans "This process has been canceled." %}
+{% elif process.status == process.STATUS_DONE %}
+    {% trans "This process has been finished." %}
+{% else %}
+    {% for activity in to_do %}
+        {% with instance=activity.instance %}
+            {% if instance.status == instance.STATUS_ERROR %}
+                <form method="post" action="{% url "processlib:activity-retry" instance.process.flow_label instance.pk %}">
+                    {% csrf_token %}
+                    {% blocktrans with activity=activity %}
+                        An error occurred during activity {{ activity }}.
+                    {% endblocktrans %}
+                    <input type="submit" value="{% trans "Retry" %}" class="btn btn-success">
+                </form>
+            {% elif activity.has_view %}
+                <a class="btn btn-primary" href="{% url "processlib:process-activity" activity.flow.label activity.instance.pk %}">
+                    {{ activity }}
+                </a>
+            {% endif %}
+        {% endwith %}
+    {% empty %}
+        {% trans "There is nothing for you to do in this process." %}
+    {% endfor %}
+{% endif %}

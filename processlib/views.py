@@ -109,9 +109,15 @@ class ProcessDetailView(DetailView):
             return None
         return template_name
 
+    def get_return_to_url(self):
+        return_to = self.request.GET.get('return_to', '')
+        if not return_to or not return_to.startswith('/'):
+            return_to = reverse('processlib:process-list-user-current')
+        return return_to
+
     def get_context_data(self, **kwargs):
         kwargs['list_view_name'] = self.list_view_name
-        kwargs['current_activities'] = get_current_activities_in_process(self.object)
+        kwargs['return_to'] = self.get_return_to_url()
         kwargs['extra_detail_template_name'] = self.get_extra_detail_template_name()
         kwargs['activities'] = get_activities_in_process(self.object)
         return super(ProcessDetailView, self).get_context_data(**kwargs)
@@ -243,6 +249,15 @@ class ActivityMixin(CurrentAppMixin):
 
         if not self.user_has_perm():
             raise PermissionDenied
+
+        if self.activity.instance.status == self.activity.instance.STATUS_DONE:
+            messages.info(request,
+                          _("The activity {} has already been done.").format(str(self.activity)))
+            return HttpResponseRedirect(
+                reverse('processlib:process-detail', args=(self.activity.process.pk, ),
+                        current_app=self.get_current_app())
+            )
+
 
         self.activity.start()
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)

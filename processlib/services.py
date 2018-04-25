@@ -18,6 +18,23 @@ def get_activity_for_flow(flow_label, activity_instance_id):
     return flow.get_activity_by_instance(instance)
 
 
+def get_activities_to_do(user, process):
+    if process.status in (process.STATUS_CANCELED, process.STATUS_DONE):
+        return []
+
+    instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
+    activities = []
+    for instance in instances.exclude(
+            status__in=(process.STATUS_DONE, process.STATUS_CANCELED)).order_by('instantiated_at'):
+        activity = instance.activity
+        if not user_has_activity_perm(user, activity):
+            continue
+
+        if activity.has_view() or instance.status == instance.STATUS_ERROR:
+            activities.append(activity)
+    return activities
+
+
 def get_current_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
     return (

@@ -12,7 +12,6 @@
         {% block details %}
             <div class="row process-detail">
                 <div class="col-xs-12">
-                    <h3>{% trans "Details" %}</h3>
                     {% include "processlib/process_details_partial.html" %}
                 </div>
             </div>
@@ -22,7 +21,7 @@
             {% if process.can_cancel %}
                 <form method="post">
                     {% csrf_token %}
-                    <a class="btn btn-default" href="{% url 'processlib:process-detail' process.pk %}">{% trans "Back to process" %}</a>
+                    <a class="btn btn-default" href="{% url 'processlib:process-detail' process.pk %}">{% trans "Back" %}</a>
                     <input type="submit" name="cancel" value="{% trans "Cancel process" %}" class="btn btn-danger">
                 </form>
             {% else %}

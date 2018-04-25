@@ -65,7 +65,11 @@ class Process(models.Model):
         return self.flow.process_model._default_manager.get(pk=self.pk)
 
     def can_cancel(self, user=None):
-        return self.status not in (self.STATUS_DONE, self.STATUS_CANCELED)
+        return (
+            self.status not in (self.STATUS_DONE, self.STATUS_CANCELED) and not
+            # FIXME allow cancelation of scheduled instances
+            self._activity_instances.filter(status=ActivityInstance.STATUS_SCHEDULED).exists()
+        )
 
     @property
     def description(self):

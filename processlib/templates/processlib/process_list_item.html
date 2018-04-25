@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load processlib_tags %}
 <div class="process-list-item">
-    <h2><a href="{% url detail_view_name process.pk %}">{{ process }}</a></h2>
+    <h2><a href="{% url detail_view_name process.pk %}?return_to={{ request.path }}">{{ process|capfirst }}</a></h2>
     <div class="row">
         <div class="col-md-4">
             <p>
@@ -21,15 +21,7 @@
             </dl>
         </div>
         <div class="col-md-4">
-            {% for activity in process|get_current_activities_in_process %}
-                {% with url=activity.get_absolute_url %}
-                    {% if url %}
-                        <a class="btn btn-default" href="{{ url }}">{{ activity }}</a>
-                    {% else %}
-                        {{ activity }}
-                    {% endif %}
-                {% endwith %}
-            {% endfor %}
+            {% include "processlib/process_to_do_partial.html" %}
         </div>
     </div>
 </div>
