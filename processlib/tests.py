@@ -147,7 +147,7 @@ class UserProcessesTest(TestCase):
         start_both.start()
         start_both.finish()
 
-        self.assertSequenceEqual([start_1.process, start_both.process],
+        self.assertSequenceEqual([start_both.process, start_1.process],
                                  get_user_processes(self.user_1))
         self.assertSequenceEqual([start_both.process], get_user_processes(self.user_2))
 
