@@ -33,12 +33,12 @@ def is_format_string(value):
 class Process(models.Model):
     STATUS_STARTED = 'started'
     STATUS_CANCELED = 'canceled'
-    STATUS_FINISHED = 'finished'
+    STATUS_DONE = 'done'
 
     STATUS_CHOICES = (
         (STATUS_STARTED, _("started")),
         (STATUS_CANCELED, _("canceled")),
-        (STATUS_FINISHED, _("finished")),
+        (STATUS_DONE, _("done")),
     )
 
     status = models.CharField(default=STATUS_STARTED, max_length=16, choices=STATUS_CHOICES)
@@ -65,7 +65,7 @@ class Process(models.Model):
         return self.flow.process_model._default_manager.get(pk=self.pk)
 
     def can_cancel(self, user=None):
-        return self.status not in (self.STATUS_FINISHED, self.STATUS_CANCELED)
+        return self.status not in (self.STATUS_DONE, self.STATUS_CANCELED)
 
     @property
     def description(self):
@@ -74,7 +74,7 @@ class Process(models.Model):
             return flow_description
         try:
             return flow_description.format(process=self)
-        except KeyError:
+        except (AttributeError, KeyError):
             return flow_description.format(process=self.full)
 
     @property
@@ -87,6 +87,7 @@ class Process(models.Model):
 
     class Meta:
         verbose_name = _("Process")
+        ordering = ('-finished_at', '-started_at', )
 
 
 class ActivityInstance(models.Model):
@@ -94,7 +95,7 @@ class ActivityInstance(models.Model):
     STATUS_SCHEDULED = 'scheduled'
     STATUS_STARTED = 'started'
     STATUS_CANCELED = 'canceled'
-    STATUS_FINISHED = 'finished'
+    STATUS_DONE = 'done'
     STATUS_ERROR = 'error'
 
     STATUS_CHOICES = (
@@ -102,7 +103,7 @@ class ActivityInstance(models.Model):
         (STATUS_SCHEDULED, _("scheduled")),
         (STATUS_STARTED, _("started")),
         (STATUS_CANCELED, _("canceled")),
-        (STATUS_FINISHED, _("finished")),
+        (STATUS_DONE, _("done")),
         (STATUS_ERROR, _("error")),
     )
 

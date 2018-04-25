@@ -45,7 +45,7 @@ class ProcessListView(CurrentAppMixin, ListView):
 
     def get_queryset(self):
         qs = super(ProcessListView, self).get_queryset()
-        status = self.request.GET.get('status', Process.STATUS_STARTED)
+        status = self.request.GET.get('status', '')
 
         if status:
             qs = qs.filter(status=status)

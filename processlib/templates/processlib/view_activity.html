@@ -2,12 +2,18 @@
 {% load i18n %}
 {% block content %}
     <h1>{{ activity }}</h1>
-    <a href="{% url 'processlib:process-detail' activity.process.pk %}">{{ activity.process }}</a>
+    {% if activity.process.pk %}
+        <a href="{% url 'processlib:process-detail' activity.process.pk %}">{{ activity.process }}</a>
+    {% endif %}
     <form enctype="multipart/form-data" method="post">
         {% csrf_token %}
         {{ form }}
         <hr>
+
+
         <input type="submit" name="_go_to_next" value="{% trans "Finish & go to next" %}" class="btn btn-default"/>
         <input type="submit" value="{% trans "Finish" %}" class="btn btn-primary"/>
+
+
     </form>
 {% endblock %}

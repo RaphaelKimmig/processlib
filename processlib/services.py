@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.utils import timezone
 
 from .flow import get_flow
 from .models import Process, ActivityInstance
@@ -21,7 +22,7 @@ def get_current_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
     return (
         instance.activity for instance in instances.exclude(
-        status__in=(process.STATUS_FINISHED, process.STATUS_CANCELED)).order_by('instantiated_at')
+        status__in=(process.STATUS_DONE, process.STATUS_CANCELED)).order_by('instantiated_at')
     )
 
 
@@ -29,7 +30,7 @@ def get_finished_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(
         process_id=process.pk).order_by('instantiated_at')
     return (
-        instance.activity for instance in instances.filter(status=process.STATUS_FINISHED)
+        instance.activity for instance in instances.filter(status=process.STATUS_DONE)
     )
 
 
@@ -54,6 +55,7 @@ def cancel_process(process):
         activity.cancel()
 
     process.status = Process.STATUS_CANCELED
+    process.finished_at = timezone.now()
     process.save()
 
 
@@ -69,9 +71,9 @@ def get_user_processes(user):
 def get_user_current_processes(user):
     return Process.objects.filter(status=Process.STATUS_STARTED).filter(
         Q(_activity_instances__assigned_group__in=user.groups.all(),
-          _activity_instances__status=ActivityInstance.STATUS_INSTANTIATED) |
+          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR)) |
         Q(_activity_instances__assigned_user=user,
-          _activity_instances__status=ActivityInstance.STATUS_INSTANTIATED),
+          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR)),
         ).distinct()
 
 

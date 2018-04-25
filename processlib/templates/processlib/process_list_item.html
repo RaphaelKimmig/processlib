@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load processlib_tags %}
 <div class="process-list-item">
-    <h2><a href="{% url detail_view_name process.pk %}">{{ process }}</a> </h2>
+    <h2><a href="{% url detail_view_name process.pk %}">{{ process }}</a></h2>
     <div class="row">
         <div class="col-md-4">
             <p>
@@ -13,10 +13,10 @@
                 <dt>{% trans "Status" %}</dt>
                 <dd>{{ process.get_status_display }}</dd>
                 <dt>{% trans "Started at" %}</dt>
-                <dd>{{ process.started_at }}</dd>
+                <dd>{{ process.started_at|date:"SHORT_DATETIME_FORMAT" }}</dd>
                 {% if process.finished_at %}
                     <dt>{% trans "Finished at" %}</dt>
-                    <dd>{{ process.finished_at }}</dd>
+                    <dd>{{ process.finished_at|date:"SHORT_DATETIME_FORMAT" }}</dd>
                 {% endif %}
             </dl>
         </div>

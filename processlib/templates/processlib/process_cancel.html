@@ -4,26 +4,30 @@
 {% block title %}{% blocktrans %}Cancel {{ process }}{% endblocktrans %}{% endblock %}
 
 {% block content %}
-    <h1>{% blocktrans %}Cancel {{ process }}{% endblocktrans %}</h1>
+    <div class="process-cancel">
+        {% block headline %}
+            <h1>{% blocktrans %}Cancel {{ process }}{% endblocktrans %}</h1>
+        {% endblock %}
 
-    <p>
+        {% block details %}
+            <div class="row process-detail">
+                <div class="col-xs-12">
+                    <h3>{% trans "Details" %}</h3>
+                    {% include "processlib/process_details_partial.html" %}
+                </div>
+            </div>
+        {% endblock %}
 
-    </p>
-
-    <dl>
-        <dt>Flow</dt><dd>{{ process.flow }}</dd>
-        <dt>Status</dt><dd>{{ process.status }}</dd>
-        <dt>Started at</dt><dd>{{ process.started_at }}</dd>
-        <dt>Finished at</dt><dd>{{ process.finished_at }}</dd>
-    </dl>
-
-    {% if process.can_cancel %}
-        <form method="post">
-            {% csrf_token %}
-            <a class="btn btn-default" href="{% url 'processlib:process-detail' process.pk %}">{% trans "Back to process" %}</a>
-            <input type="submit" name="cancel" value="{% trans "Cancel process" %}" class="btn btn-danger">
-        </form>
-    {% else %}
-        {% trans "This process can not be canceled or you do not have the permissions to do so." %}
-    {% endif %}
+        {% block form  %}
+            {% if process.can_cancel %}
+                <form method="post">
+                    {% csrf_token %}
+                    <a class="btn btn-default" href="{% url 'processlib:process-detail' process.pk %}">{% trans "Back to process" %}</a>
+                    <input type="submit" name="cancel" value="{% trans "Cancel process" %}" class="btn btn-danger">
+                </form>
+            {% else %}
+                {% trans "This process can not be canceled or you do not have the permissions to do so." %}
+            {% endif %}
+        {% endblock %}
+    </div>
 {% endblock %}

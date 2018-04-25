@@ -4,36 +4,42 @@
 
 {% block content %}
     <div class="process-list">
+        {% block tabs %}
+            <ul class="nav nav-tabs">
+                {% url 'processlib:process-list-user-current' as list_user_current_url %}
+                <li role="presentation" {% if list_user_current_url == request.path %}class="active"{% endif %}>
+                    <a href="{{ list_user_current_url }}">{% trans "Current processes assigned to me" %}</a>
+                </li>
+                {% url 'processlib:process-list-user' as list_user_url %}
+                <li role="presentation" {% if list_user_url == request.path %}class="active"{% endif %}>
+                    <a href="{{ list_user_url }}">{% trans "All processes assigned to me" %}</a>
+                </li>
+                {% url 'processlib:process-list' as list_url %}
+                <li role="presentation" {% if list_url == request.path %}class="active"{% endif %}>
+                    <a href="{{ list_url }}">{% trans "All processes" %}</a>
+                </li>
+            </ul>
+        {% endblock %}
 
-        <a href="{% url 'processlib:process-list-user-current' %}" class="btn btn-info btn-small">
-            {% trans "Current processes assigned to me" %}
-        </a>
-        <a href="{% url 'processlib:process-list-user' %}" class="btn btn-info btn-small">
-            {% trans "All processes assigned to me" %}
-        </a>
-            <a href="{% url 'processlib:process-list' %}" class="btn btn-info btn-small">
-           {% trans "All processes" %}
-        </a>
-        <h1>{{ title }}</h1>
-        {% for process in process_list %}
-            {% with process=process.full %}
-                {% include "processlib/process_list_item.html" %}
+        {% block list_items %}
+            <div class="list-items">
+                {% for process in process_list %}
+                    {% include "processlib/process_list_item.html" %}
+                {% endfor %}
+            </div>
+        {% endblock %}
 
-            {% endwith %}
+        {% block start_buttons %}
+        <h2>{% trans "Start a workflow" %}</h2>
+        {% for label, flow in flows %}
+            {% if flow.get_start_activity.has_view %}
+                <form class="pull-left" action="{% url "processlib:process-start" label %}" method="get">
+                    {% csrf_token %}
+                    <input type="submit" name="start" class="btn btn-default" value="{{ flow }}">
+                </form>
+
+            {% endif %}
         {% endfor %}
-
-        <h2>Flows</h2>
-        <ul>
-            {% for label, flow in flows %}
-                {% if flow.get_start_activity.has_view %}
-                    <li>
-                        <form action="{% url "processlib:process-start" label %}" method="post">
-                            {% csrf_token %}
-                            <input type="submit" name="start" value="Start {{ flow }}">
-                        </form>
-                    </li>
-                {% endif %}
-            {% endfor %}
-        </ul>
+        {% endblock %}
     </div>
 {% endblock %}

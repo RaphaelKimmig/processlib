@@ -194,7 +194,7 @@ class UserProcessesTest(TestCase):
         process = start.process
         process.refresh_from_db()
 
-        self.assertEqual(start.process.status, start.process.STATUS_FINISHED)
+        self.assertEqual(start.process.status, start.process.STATUS_DONE)
         self.assertSequenceEqual([], get_user_current_processes(self.user_1))
 
     def test_get_current_processes_assigned_to_user_excludes_finished_activities(self):
@@ -209,7 +209,7 @@ class UserProcessesTest(TestCase):
         process.refresh_from_db()
 
         self.assertEqual(start.instance.assigned_user, self.user_1)
-        self.assertNotEqual(process.status, process.STATUS_FINISHED)
+        self.assertNotEqual(process.status, process.STATUS_DONE)
 
         self.assertSequenceEqual([], get_user_current_processes(self.user_1))
 

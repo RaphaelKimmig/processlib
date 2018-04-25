@@ -7,8 +7,12 @@ else:
 
 from django.utils import timezone
 
+import logging
 from processlib.assignment import inherit
 from processlib.tasks import run_async_activity
+
+
+logger = logging.getLogger(__name__)
 
 
 class Activity(object):
@@ -81,7 +85,7 @@ class Activity(object):
         assert self.instance.status == self.instance.STATUS_STARTED
         if not self.instance.finished_at:
             self.instance.finished_at = timezone.now()
-        self.instance.status = self.instance.STATUS_FINISHED
+        self.instance.status = self.instance.STATUS_DONE
         self.instance.save()
         self._instantiate_next_activities()
 
@@ -92,7 +96,7 @@ class Activity(object):
         self.instance.save()
 
     def undo(self, **kwargs):
-        assert self.instance.status == self.instance.STATUS_FINISHED
+        assert self.instance.status == self.instance.STATUS_DONE
         self.instance.finished_at = None
         self.instance.status = self.instance.STATUS_INSTANTIATED
         self.instance.save()
@@ -102,8 +106,9 @@ class Activity(object):
             undo_callback()
 
     def error(self, **kwargs):
-        assert self.instance.status != self.instance.STATUS_FINISHED
+        assert self.instance.status != self.instance.STATUS_DONE
         self.instance.status = self.instance.STATUS_ERROR
+        self.instance.finished_at = timezone.now()
         self.instance.save()
 
     def _get_next_activities(self):
@@ -166,11 +171,20 @@ class FunctionActivity(Activity):
 
     def start(self, **kwargs):
         super(FunctionActivity, self).start(**kwargs)
-        self.callback(self)
+
+        try:
+            self.callback(self)
+        except Exception as e:
+            logger.exception(e)
+            self.error(exception=e)
+            return
+
         self.finish()
 
     def retry(self):
+        assert self.instance.status == self.instance.STATUS_ERROR
         self.instance.status = self.instance.STATUS_INSTANTIATED
+        self.instance.finished_at = None
         self.instance.save()
         self.start()
 
@@ -190,10 +204,11 @@ class AsyncActivity(Activity):
         self.instance.save()
         run_async_activity.delay(self.flow.label, self.instance.pk)
 
-    def retry(self):
+    def retry(self, **kwargs):
+        assert self.instance.status == self.instance.STATUS_ERROR
         self.instance.status = self.instance.STATUS_INSTANTIATED
-        self.instance.save()
-        run_async_activity.delay(self.flow.label, self.instance.pk)
+        self.instance.finished_at = None
+        self.schedule(**kwargs)
 
     def start(self, **kwargs):
         super(AsyncActivity, self).start(**kwargs)
@@ -226,7 +241,7 @@ class StartMixin(Activity):
 
         self.process.save()
         self.instance.process = self.process
-        self.instance.status = self.instance.STATUS_FINISHED
+        self.instance.status = self.instance.STATUS_DONE
         self.instance.save()
         self._instantiate_next_activities()
 
@@ -253,8 +268,8 @@ class EndActivity(Activity):
             self.process.finished_at = self.instance.finished_at
             update_fields.append('finished_at')
 
-        if not self.process.status == self.process.STATUS_FINISHED:
-            self.process.status = self.process.STATUS_FINISHED
+        if not self.process.status == self.process.STATUS_DONE:
+            self.process.status = self.process.STATUS_DONE
             update_fields.append('status')
 
         self.process.save(update_fields=update_fields)
@@ -295,7 +310,7 @@ class Wait(Activity):
 
         for candidate in candidates:
             # FIXME this only corrects for simple loops, may fail with more complex scenarios
-            if not candidate.successors.filter(status=candidate.STATUS_FINISHED,
+            if not candidate.successors.filter(status=candidate.STATUS_DONE,
                                                activity_name=self.name).exists():
                 return candidate
 

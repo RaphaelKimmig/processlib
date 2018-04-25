@@ -1,0 +1,13 @@
+{% load i18n %}
+<dl class="dl-horizontal">
+    <dt>{% trans "Description" %}</dt>
+    <dd>{{ process.description }}</dd>
+    <dt>{% trans "Status" %}</dt>
+    <dd>{{ process.get_status_display }}</dd>
+    <dt>{% trans "Started at" %}</dt>
+    <dd>{{ process.started_at }}</dd>
+    {% if process.finished_at %}
+        <dt>{% trans "Finished at" %}</dt>
+        <dd>{{ process.finished_at }}</dd>
+    {% endif %}
+</dl>
