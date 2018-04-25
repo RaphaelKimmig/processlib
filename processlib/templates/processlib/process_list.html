@@ -26,13 +26,13 @@
                 {% for process in process_list %}
                     {% include "processlib/process_list_item.html" %}
                 {% empty %}
-                    <p>
+                    <div class="process-list-empty">
                         {% if list_user_current_url == request.path %}
                             {% trans "Congratulations, you have finished all todos." %}
                         {% else %}
                             {% trans "There are no processes in this list." %}
                         {% endif %}
-                    </p>
+                    </div>
                 {% endfor %}
             </div>
         {% endblock %}
