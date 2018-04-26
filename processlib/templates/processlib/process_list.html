@@ -7,6 +7,9 @@
     {% url 'processlib:process-list-user' as list_user_url %}
     {% url 'processlib:process-list' as list_url %}
     <div class="process-list">
+        {% block headline %}
+            <h1>{% trans "Processes" %}</h1>
+        {% endblock %}
         {% block tabs %}
             <ul class="nav nav-tabs">
                 <li role="presentation" {% if list_user_current_url == request.path %}class="active"{% endif %}>
