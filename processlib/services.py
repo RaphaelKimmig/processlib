@@ -81,6 +81,9 @@ def get_user_processes(user):
         Q(_activity_instances__assigned_group__in=user.groups.all()) &
         ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED) |
         Q(_activity_instances__assigned_user=user) &
+        ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED) |
+        Q(_activity_instances__assigned_user__isnull=True,
+          _activity_instances__assigned_group__isnull=True) &
         ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED)
     ).distinct()
 
@@ -88,9 +91,15 @@ def get_user_processes(user):
 def get_user_current_processes(user):
     return Process.objects.filter(status=Process.STATUS_STARTED).filter(
         Q(_activity_instances__assigned_group__in=user.groups.all(),
-          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR)) |
+          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED,
+                                           ActivityInstance.STATUS_ERROR)) |
         Q(_activity_instances__assigned_user=user,
-          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR)),
+          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED,
+                                           ActivityInstance.STATUS_ERROR)) |
+        Q(_activity_instances__assigned_group__isnull=True,
+          _activity_instances__assigned_user__isnull=True,
+          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED,
+                                           ActivityInstance.STATUS_ERROR)),
         ).distinct()
 
 
