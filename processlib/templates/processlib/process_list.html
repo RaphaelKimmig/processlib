@@ -38,10 +38,13 @@
                     {% include "processlib/process_list_item.html" %}
                 {% empty %}
                     <div class="process-list-empty">
-                        {% if list_user_current_url == request.path %}
+                        {% if list_user_current_url == request.path and not search %}
                             {% trans "Congratulations, you have finished all todos." %}
                         {% else %}
                             {% trans "No processes found." %}
+                        {% endif %}
+                        {% if search %}
+                            <a href="{{ request.path }}">{% trans "Reset search." %}</a>
                         {% endif %}
                     </div>
                 {% endfor %}
