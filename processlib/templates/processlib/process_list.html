@@ -39,7 +39,7 @@
                 {% empty %}
                     <div class="process-list-empty">
                         {% if list_user_current_url == request.path and not search %}
-                            {% trans "Congratulations, you have finished all todos." %}
+                            {% trans "Congratulations, there is nothing for you to do in any process." %}
                         {% else %}
                             {% trans "No processes found." %}
                         {% endif %}
