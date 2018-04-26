@@ -3,14 +3,14 @@
 {% load i18n %}
 
 {% block content %}
-    {% url 'processlib:process-list-user-current' as list_user_current_url %}
-    {% url 'processlib:process-list-user' as list_user_url %}
-    {% url 'processlib:process-list' as list_url %}
     <div class="process-list">
         {% block headline %}
             <h1>{% trans "Processes" %}</h1>
         {% endblock %}
         {% block tabs %}
+            {% url 'processlib:process-list' as list_url %}
+            {% url 'processlib:process-list-user' as list_user_url %}
+            {% url 'processlib:process-list-user-current' as list_user_current_url %}
             <ul class="nav nav-tabs">
                 <li role="presentation" {% if list_user_current_url == request.path %}class="active"{% endif %}>
                     <a href="{{ list_user_current_url }}">{% trans "Current processes assigned to me" %}</a>
@@ -22,7 +22,6 @@
                     <a href="{{ list_url }}">{% trans "All processes" %}</a>
                 </li>
             </ul>
-
         {% endblock %}
         {% block search %}
             <form class="form-horizontal">
@@ -41,6 +40,7 @@
                     {% include "processlib/process_list_item.html" %}
                 {% empty %}
                     <div class="process-list-empty">
+                        {% url 'processlib:process-list-user-current' as list_user_current_url %}
                         {% if list_user_current_url == request.path and not search %}
                             {% trans "Congratulations, there is nothing for you to do in any process." %}
                         {% else %}
