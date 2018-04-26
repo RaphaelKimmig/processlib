@@ -51,6 +51,30 @@
             </div>
         {% endblock %}
 
+        {% block pagination %}
+            {% if is_paginated %}
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                        <li><a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}" aria-label="{% trans 'Previous' %}"><span aria-hidden="true">&laquo;</span></a></li>
+                            {% else %}
+                        <li class="disabled"><a href="#" aria-label="{% trans 'Previous' %}"><span aria-hidden="true">&laquo;</span></a></li>
+                    {% endif %}
+                    {% for page_number in page_obj.paginator.page_range %}
+                        {% if page_number ==  page_obj.number %}
+                            <li class="active"><a href="#">{{ page_number }} <span class="sr-only">{% trans "(current)" %}</span></a></li>
+                        {% else %}
+                            <li><a href="?page={{ page_number }}{% if search %}&search={{ search }}{% endif %}">{{ page_number }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <li><a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}" aria-label="{% trans 'Next' %}"><span aria-hidden="true">&raquo;</span></a></li>
+                            {% else %}
+                        <li class="disabled"><a href="#" aria-label="{% trans 'Next' %}"><span aria-hidden="true">&raquo;</span></a></li>
+                    {% endif %}
+                </ul>
+            {% endif %}
+        {% endblock %}
+
         {% block start_buttons %}
             <h2>{% trans "Start a workflow" %}</h2>
             {% for label, flow in flows %}

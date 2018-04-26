@@ -40,7 +40,7 @@ class ProcessListView(CurrentAppMixin, ListView):
     queryset = Process.objects.all()
     detail_view_name = 'processlib:process-detail'
     title = _("Processes")
-    paginate_by = 5
+    paginate_by = 10
 
     def get_title(self):
         return self.title
