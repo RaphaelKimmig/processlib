@@ -1,0 +1,203 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-04-26 14:43+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: models.py:39 models.py:110
+msgid "started"
+msgstr "begonnen"
+
+#: models.py:40 models.py:111
+msgid "canceled"
+msgstr "abgebrochen"
+
+#: models.py:41 models.py:112
+msgid "done"
+msgstr "erledigt"
+
+#: models.py:95
+msgid "Process"
+msgstr "Prozess"
+
+#: models.py:108
+msgid "instantiated"
+msgstr "erzeugt"
+
+#: models.py:109
+msgid "scheduled"
+msgstr "geplant"
+
+#: models.py:113
+msgid "error"
+msgstr "fehler"
+
+#: templates/processlib/process_cancel.html:4
+#: templates/processlib/process_cancel.html:9
+#, python-format
+msgid "Cancel %(process)s"
+msgstr "%(process)s abbrechen"
+
+#: templates/processlib/process_cancel.html:24
+#: templates/processlib/process_detail.html:10
+msgid "Back"
+msgstr "Zurück"
+
+#: templates/processlib/process_cancel.html:25
+#: templates/processlib/process_detail.html:14
+msgid "Cancel process"
+msgstr "Prozess abbrechen"
+
+#: templates/processlib/process_cancel.html:28
+msgid ""
+"This process can not be canceled or you do not have the permissions to do so."
+msgstr "Dieser Prozess kann nicht abgebrochen werden oder Sie haben nicht die Berechtigung dies zu tun."
+
+#: templates/processlib/process_detail.html:31
+msgid "To-do"
+msgstr "To-Do"
+
+#: templates/processlib/process_detail.html:36
+msgid "History"
+msgstr "Verlauf"
+
+#: templates/processlib/process_detail.html:40
+msgid "Activity"
+msgstr "Aktion"
+
+#: templates/processlib/process_detail.html:41
+#: templates/processlib/process_details_partial.html:7
+#: templates/processlib/process_list_item.html:13
+msgid "Status"
+msgstr "Status"
+
+#: templates/processlib/process_detail.html:42
+msgid "Instantiated at"
+msgstr "Erzeugt am"
+
+#: templates/processlib/process_detail.html:43
+#: templates/processlib/process_details_partial.html:12
+#: templates/processlib/process_list_item.html:18
+msgid "Finished at"
+msgstr "Beendet am"
+
+#: templates/processlib/process_details_partial.html:3
+msgid "ID"
+msgstr "ID"
+
+#: templates/processlib/process_details_partial.html:5
+msgid "Description"
+msgstr "Beschreibung"
+
+#: templates/processlib/process_details_partial.html:9
+#: templates/processlib/process_list_item.html:15
+msgid "Started at"
+msgstr "Begonnen am"
+
+#: templates/processlib/process_list.html:8 views.py:42
+msgid "Processes"
+msgstr "Prozesse"
+
+#: templates/processlib/process_list.html:16
+msgid "Current processes assigned to me"
+msgstr "Meine aktiven Prozesse"
+
+#: templates/processlib/process_list.html:19
+msgid "All processes assigned to me"
+msgstr "Alle meine Prozesse"
+
+#: templates/processlib/process_list.html:22
+msgid "All processes"
+msgstr "Alle Prozesse"
+
+#: templates/processlib/process_list.html:29
+msgid "Search"
+msgstr "Suchen"
+
+#: templates/processlib/process_list.html:45
+msgid "Congratulations, there is nothing for you to do in any process."
+msgstr "Gratulation, es gibt für Sie in keinem Prozess etwas zu tun."
+
+#: templates/processlib/process_list.html:47
+msgid "No processes found."
+msgstr "Keine Prozesse gefunden."
+
+#: templates/processlib/process_list.html:50
+msgid "Reset search."
+msgstr "Suche zurücksetzen."
+
+#: templates/processlib/process_list.html:61
+#: templates/processlib/process_list.html:63
+msgid "Previous"
+msgstr "Zurück"
+
+#: templates/processlib/process_list.html:67
+msgid "(current)"
+msgstr "(aktuell)"
+
+#: templates/processlib/process_list.html:73
+#: templates/processlib/process_list.html:75
+msgid "Next"
+msgstr "Weiter"
+
+#: templates/processlib/process_list.html:82
+msgid "Start a workflow"
+msgstr "Einen Ablauf beginnen"
+
+#: templates/processlib/process_to_do_partial.html:5
+msgid "This process has been canceled."
+msgstr "Dieser Prozess wurde abgebrochen."
+
+#: templates/processlib/process_to_do_partial.html:7
+msgid "This process has been finished."
+msgstr "Dieser Prozess wurde beendet."
+
+#: templates/processlib/process_to_do_partial.html:14
+#, python-format
+msgid ""
+"\n"
+"                        An error occurred during activity %(activity)s.\n"
+"                    "
+msgstr ""
+
+#: templates/processlib/process_to_do_partial.html:17
+msgid "Retry"
+msgstr "Erneut versuchen"
+
+#: templates/processlib/process_to_do_partial.html:26
+msgid "There is nothing for you to do in this process."
+msgstr "Es gibt für Sie in diesem Prozess nichts zu tun."
+
+#: templates/processlib/view_activity.html:14
+msgid "Finish & go to next"
+msgstr "Erledigt & zum Nächsten"
+
+#: templates/processlib/view_activity.html:15
+msgid "Finish"
+msgstr "Erledigt"
+
+#: views.py:97
+msgid "My processes"
+msgstr "Meine Prozesse"
+
+#: views.py:105
+msgid "My current processes"
+msgstr "Meine aktiven Prozesse"
+
+#: views.py:279
+msgid "The activity {} has already been done."
+msgstr "Die Aktion {} wurde bereits erledigt."
