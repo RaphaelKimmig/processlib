@@ -19,6 +19,17 @@
                     <a href="{{ list_url }}">{% trans "All processes" %}</a>
                 </li>
             </ul>
+
+        {% endblock %}
+        {% block search %}
+            <form class="form-horizontal">
+                <div class="form-group">
+                    <label class="col-sm-1 control-label" for="process-search">{% trans "Search" %}</label>
+                    <div class="col-sm-11">
+                        <input class="form-control" id="process-search" type="text" name="search" value="{{ search }}">
+                    </div>
+                </div>
+            </form>
         {% endblock %}
 
         {% block list_items %}
@@ -30,7 +41,7 @@
                         {% if list_user_current_url == request.path %}
                             {% trans "Congratulations, you have finished all todos." %}
                         {% else %}
-                            {% trans "There are no processes in this list." %}
+                            {% trans "No processes found." %}
                         {% endif %}
                     </div>
                 {% endfor %}

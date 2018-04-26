@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
@@ -45,15 +46,51 @@ class ProcessListView(CurrentAppMixin, ListView):
 
     def get_queryset(self):
         qs = super(ProcessListView, self).get_queryset()
-        status = self.request.GET.get('status', '')
+        return self.filter_queryset(qs)
+
+    def get_search_query(self):
+        return self.request.GET.get('search', '').strip()
+
+    def filter_queryset(self, qs):
+        status = self.request.GET.get('status', '').strip()
+        search = self.get_search_query()
 
         if status:
             qs = qs.filter(status=status)
 
+        if search:
+            qs = qs.filter(self.construct_search_filter(search))
+
         return qs
+
+    def get_search_fields(self):
+        by_model = {}
+        for name, flow in get_flows():
+            search_fields = flow.process_model.search_fields
+            name = flow.process_model._meta.model_name.lower()
+            if search_fields:
+                by_model[name] = search_fields
+
+        field_names = []
+        for name, fields in by_model.items():
+            for field in fields:
+                field_names.append('{}__{}'.format(name, field))
+
+        return field_names
+
+    def construct_search_filter(self, query):
+        q = Q()
+        if not query:
+            return q
+
+        for field in self.get_search_fields():
+            q |= Q(**{'{}__icontains'.format(field): query})
+
+        return q
 
     def get_context_data(self, **kwargs):
         kwargs['flows'] = get_flows()
+        kwargs['search'] = self.get_search_query()
         kwargs['title'] = self.get_title()
         kwargs['detail_view_name'] = self.detail_view_name
         return super(ProcessListView, self).get_context_data(**kwargs)
@@ -64,12 +101,7 @@ class UserProcessListView(ProcessListView):
 
     def get_queryset(self):
         qs = get_user_processes(self.request.user)
-        status = self.request.GET.get('status', '')
-
-        if status:
-            qs = qs.filter(status=status)
-
-        return qs
+        return self.filter_queryset(qs)
 
 
 class UserCurrentProcessListView(ProcessListView):
@@ -77,12 +109,7 @@ class UserCurrentProcessListView(ProcessListView):
 
     def get_queryset(self):
         qs = get_user_current_processes(self.request.user)
-        status = self.request.GET.get('status', '')
-
-        if status:
-            qs = qs.filter(status=status)
-
-        return qs
+        return self.filter_queryset(qs)
 
 
 class ProcessDetailView(DetailView):

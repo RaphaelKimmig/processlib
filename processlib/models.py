@@ -41,6 +41,8 @@ class Process(models.Model):
         (STATUS_DONE, _("done")),
     )
 
+    search_fields = []
+
     status = models.CharField(default=STATUS_STARTED, max_length=16, choices=STATUS_CHOICES)
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
