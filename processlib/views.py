@@ -40,6 +40,7 @@ class ProcessListView(CurrentAppMixin, ListView):
     queryset = Process.objects.all()
     detail_view_name = 'processlib:process-detail'
     title = _("Processes")
+    paginate_by = 5
 
     def get_title(self):
         return self.title
@@ -52,11 +53,7 @@ class ProcessListView(CurrentAppMixin, ListView):
         return self.request.GET.get('search', '').strip()
 
     def filter_queryset(self, qs):
-        status = self.request.GET.get('status', '').strip()
         search = self.get_search_query()
-
-        if status:
-            qs = qs.filter(status=status)
 
         if search:
             qs = qs.filter(self.construct_search_filter(search))
