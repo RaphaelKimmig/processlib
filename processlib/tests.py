@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
 
+from processlib.activity import FunctionActivity, AsyncActivity
 from .activity import StartActivity, EndActivity, ViewActivity, Wait, StartViewActivity
 from .assignment import inherit, nobody, request_user
 from .flow import Flow
@@ -552,3 +553,92 @@ class ProcesslibViewTest(TestCase):
                 activity_name='start', modified_by=self.user).first())
 
 
+
+class ActivityTest(TestCase):
+    def test_function_activity_with_error_records_error(self):
+        function_error_flow = Flow(
+            "function_error_flow",
+        ).start_with(
+            'start', StartActivity,
+        ).and_then(
+            'function', FunctionActivity, callback=lambda activity: 1/0,
+        ).and_then(
+            'end', EndActivity,
+        )
+        start = function_error_flow.get_start_activity()
+        start.start()
+        start.finish()
+
+        activity_instance = start.process._activity_instances.get(activity_name='function')
+        self.assertEqual(activity_instance.status, ActivityInstance.STATUS_ERROR)
+
+    def test_function_activity_with_error_retry(self):
+        function_error_retry_flow = Flow(
+            "function_error_retry_flow",
+        ).start_with(
+            'start', StartActivity,
+        ).and_then(
+            'function', FunctionActivity, callback=lambda activity: 1/0,
+        ).and_then(
+            'end', EndActivity,
+        )
+        start = function_error_retry_flow.get_start_activity()
+        start.start()
+        start.finish()
+
+        activity_instance = start.process._activity_instances.get(activity_name='function')
+
+        def working_callback(activity):
+            activity.instance.assigned_group = Group.objects.create(name='side-effect')
+            activity.instance.save()
+
+        function_error_retry_flow._activity_kwargs['function']['callback'] = working_callback
+
+        activity_instance.activity.retry()
+        activity_instance.refresh_from_db()
+        self.assertEqual(activity_instance.status, ActivityInstance.STATUS_DONE)
+        self.assertEqual(activity_instance.assigned_group.name, 'side-effect')
+
+    def test_async_activity_with_error_records_error(self):
+        function_error_flow = Flow(
+            "async_error_flow",
+        ).start_with(
+            'start', StartActivity,
+        ).and_then(
+            'async', AsyncActivity, callback=lambda activity: 1/0,
+        ).and_then(
+            'end', EndActivity,
+        )
+        start = function_error_flow.get_start_activity()
+        start.start()
+        start.finish()
+
+        activity_instance = start.process._activity_instances.get(activity_name='async')
+        self.assertEqual(activity_instance.status, ActivityInstance.STATUS_ERROR)
+
+    def test_async_activity_with_error_retry(self):
+        async_error_retry_flow = Flow(
+            "async_error_retry_flow",
+        ).start_with(
+            'start', StartActivity,
+        ).and_then(
+            'async', AsyncActivity, callback=lambda activity: 1/0,
+        ).and_then(
+            'end', EndActivity,
+        )
+        start = async_error_retry_flow.get_start_activity()
+        start.start()
+        start.finish()
+
+        activity_instance = start.process._activity_instances.get(activity_name='async')
+
+        def working_callback(activity):
+            activity.instance.assigned_group = Group.objects.create(name='side-effect')
+            activity.instance.save()
+
+        async_error_retry_flow._activity_kwargs['async']['callback'] = working_callback
+
+        activity_instance.activity.retry()
+        activity_instance.refresh_from_db()
+        self.assertEqual(activity_instance.status, ActivityInstance.STATUS_DONE)
+        self.assertEqual(activity_instance.assigned_group.name, 'side-effect')

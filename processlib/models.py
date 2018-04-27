@@ -41,7 +41,7 @@ class Process(models.Model):
         (STATUS_DONE, _("done")),
     )
 
-    search_fields = []
+    search_fields = ['id']
 
     status = models.CharField(default=STATUS_STARTED, max_length=16, choices=STATUS_CHOICES)
 

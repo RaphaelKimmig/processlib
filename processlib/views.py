@@ -64,16 +64,15 @@ class ProcessListView(CurrentAppMixin, ListView):
         by_model = {}
         for name, flow in get_flows():
             search_fields = flow.process_model.search_fields
-            name = flow.process_model._meta.model_name.lower()
+            model_label = flow.process_model._meta.label
             if search_fields:
-                by_model[name] = search_fields
+                by_model[model_label] = search_fields
 
-        field_names = []
+        all_fields = []
         for name, fields in by_model.items():
-            for field in fields:
-                field_names.append('{}__{}'.format(name, field))
+            all_fields.extend(fields)
 
-        return field_names
+        return all_fields
 
     def construct_search_filter(self, query):
         q = Q()

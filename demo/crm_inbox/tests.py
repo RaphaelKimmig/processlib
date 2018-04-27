@@ -141,6 +141,13 @@ class SimpleViewTest(WebTest):
         start.finish()
         self.process_2 = start.process
 
+    def test_process_list_search_works(self):
+        url = reverse('processlib:process-list') + "?search={}".format(self.process_1.id)
+        process_list = self.app.get(url)
+
+        self.assertContains(process_list, self.process_1.id)
+        self.assertNotContains(process_list, self.process_2.id)
+
     def test_process_list_contains_processes(self):
         process_list = self.app.get(reverse('processlib:process-list'))
         self.assertContains(process_list, self.process_1.id)
