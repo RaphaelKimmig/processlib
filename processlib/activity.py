@@ -279,6 +279,7 @@ class EndActivity(Activity):
 
         self.process.save(update_fields=update_fields)
 
+
 class FormActivity(Activity):
     def __init__(self, form_class=None, **kwargs):
         self.form_class = form_class
