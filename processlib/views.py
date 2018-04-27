@@ -167,7 +167,8 @@ class ProcessCancelView(UpdateView):
             messages.error(self.request, "You can't cancel that process at this time.")
 
         from .services import cancel_process
-        cancel_process(self.object)
+        user = self.request.user if self.request.user.is_authenticated else None
+        cancel_process(self.object, user=user)
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -191,8 +192,9 @@ class ProcessStartView(CurrentAppMixin, View):
             return super(ProcessStartView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        user = request.user if request.user.is_authenticated else None
         self.activity.start()
-        self.activity.finish()
+        self.activity.finish(user=user)
         return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
@@ -217,7 +219,8 @@ class ProcessActivityView(ActivityByLabelAndIdMixin, View):
 class ActivityUndoView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
-        self.activity.undo()
+        user = self.request.user if self.request.user.is_authenticated else None
+        self.activity.undo(user=user)
         return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
@@ -233,7 +236,8 @@ class ActivityRetryView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
 class ActivityCancelView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
-        self.activity.cancel()
+        user = self.request.user if self.request.user.is_authenticated else None
+        self.activity.cancel(user=user)
         return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
 
 
@@ -264,7 +268,8 @@ class ActivityMixin(CurrentAppMixin):
         return self.activity.flow.process_model._default_manager.all()
 
     def form_valid(self, *args, **kwargs):
-        self.activity.finish()
+        user = self.request.user if self.request.user.is_authenticated else None
+        self.activity.finish(user=user)
         response = super(ActivityMixin, self).form_valid(*args, **kwargs)
         return response
 

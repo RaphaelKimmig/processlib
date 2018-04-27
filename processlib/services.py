@@ -64,12 +64,12 @@ def cancel_and_undo_predecessors(activity):
         instance.activity.undo()
 
 
-def cancel_process(process):
+def cancel_process(process, user):
     assert process.can_cancel()
     activities = get_current_activities_in_process(process)
 
     for activity in activities:
-        activity.cancel()
+        activity.cancel(user=user)
 
     process.status = Process.STATUS_CANCELED
     process.finished_at = timezone.now()
@@ -103,6 +103,7 @@ def get_user_current_processes(user, include_unassigned=True):
             _activity_instances__assigned_group__isnull=True,
             _activity_instances__assigned_user__isnull=True, _activity_instances__status__in=(
                 ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR))
+
 
     return Process.objects.filter(status=Process.STATUS_STARTED).filter(q).distinct()
 

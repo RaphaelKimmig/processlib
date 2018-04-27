@@ -86,6 +86,7 @@ class Activity(object):
         if not self.instance.finished_at:
             self.instance.finished_at = timezone.now()
         self.instance.status = self.instance.STATUS_DONE
+        self.instance.modified_by = kwargs.get('user', None)
         self.instance.save()
         self._instantiate_next_activities()
 
@@ -93,12 +94,14 @@ class Activity(object):
         assert self.instance.status in (self.instance.STATUS_INSTANTIATED,
                                         self.instance.STATUS_ERROR)
         self.instance.status = self.instance.STATUS_CANCELED
+        self.instance.modified_by = kwargs.get('user', None)
         self.instance.save()
 
     def undo(self, **kwargs):
         assert self.instance.status == self.instance.STATUS_DONE
         self.instance.finished_at = None
         self.instance.status = self.instance.STATUS_INSTANTIATED
+        self.instance.modified_by = kwargs.get('user', None)
         self.instance.save()
 
         undo_callback = getattr(self.process, 'undo_{}'.format(self.name), None)
@@ -109,6 +112,7 @@ class Activity(object):
         assert self.instance.status != self.instance.STATUS_DONE
         self.instance.status = self.instance.STATUS_ERROR
         self.instance.finished_at = timezone.now()
+        self.instance.modified_by = kwargs.get('user', None)
         self.instance.save()
 
     def _get_next_activities(self):
@@ -242,6 +246,7 @@ class StartMixin(Activity):
         self.process.save()
         self.instance.process = self.process
         self.instance.status = self.instance.STATUS_DONE
+        self.instance.modified_by = kwargs.get('user', None)
         self.instance.save()
         self._instantiate_next_activities()
 

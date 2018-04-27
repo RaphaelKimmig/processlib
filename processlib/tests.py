@@ -2,10 +2,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import PermissionDenied
 from django.test import TestCase, RequestFactory
+from django.urls import reverse
 
 from .activity import StartActivity, EndActivity, ViewActivity, Wait, StartViewActivity
 from .assignment import inherit, nobody, request_user
 from .flow import Flow
+from .models import ActivityInstance
 from .services import (get_user_processes, get_user_current_processes,
                        get_current_activities_in_process)
 from .services import user_has_activity_perm, user_has_any_process_perm
@@ -97,11 +99,11 @@ user_processes_test_flow = Flow(
     "user_processes_test_flow",
 ).start_with(
     'start', StartActivity,
-    assign_to=lambda **kwargs: (User.objects.get(username='user_3'), None),
+    assign_to=lambda **kwargs: (User.objects.get(username='user_default'), None),
 ).and_then(
     'view', ViewActivity,
     view=ProcessUpdateView.as_view(),
-    assign_to=lambda **kwargs: (User.objects.get(username='user_3'), None),
+    assign_to=lambda **kwargs: (User.objects.get(username='user_default'), None),
 ).and_then(
     'end', EndActivity,
 )
@@ -111,7 +113,7 @@ class UserProcessesTest(TestCase):
     def setUp(self):
         self.user_1 = User.objects.create(username='user_1')
         self.user_2 = User.objects.create(username='user_2')
-        self.user_3 = User.objects.create(username='user_3')
+        self.user_default = User.objects.create(username='user_default')
 
         self.group_1 = Group.objects.create(name='group_1')
         self.group_both = Group.objects.create(name='group_both')
@@ -127,7 +129,7 @@ class UserProcessesTest(TestCase):
 
         self.assertSequenceEqual([], get_user_processes(self.user_1))
         self.assertSequenceEqual([], get_user_processes(self.user_2))
-        self.assertSequenceEqual([start.process], get_user_processes(self.user_3))
+        self.assertSequenceEqual([start.process], get_user_processes(self.user_default))
 
     def test_get_processes_assigned_to_user(self):
         start = user_processes_test_flow.get_start_activity(
@@ -452,3 +454,83 @@ class ProcesslibViewPermissionTest(TestCase):
 
         response = ProcessViewSet.as_view({'post': 'create'})(post_with_permissions)
         self.assertEqual(response.status_code, 201)
+
+
+view_test_flow = Flow(
+    "view_test_flow",
+).start_with(
+    'start', StartActivity,
+).and_then(
+    'view', ViewActivity, view=ProcessUpdateView.as_view(fields=[]),
+).and_then(
+    'end', EndActivity,
+)
+
+class ProcesslibViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create(username='testuser')
+        self.user.set_password('password')
+        self.user.save()
+
+        self.start = view_test_flow.get_start_activity()
+        self.start.start()
+        self.start.finish()
+        self.process = self.start.process
+        self.next_activity = next(get_current_activities_in_process(self.process))
+
+        self.get = RequestFactory().get('/')
+        self.get.user = self.user
+        self.client.login(username='testuser', password='password')
+
+    def test_activity_cancel_view_records_modified_by(self):
+        activity_instance = self.next_activity.instance
+        url = reverse('processlib:activity-cancel', kwargs={'flow_label': self.process.flow_label,
+                                                            'activity_id': activity_instance.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(activity_instance.modified_by, None)
+        activity_instance.refresh_from_db()
+        self.assertEqual(activity_instance.modified_by, self.user)
+
+    def test_activity_undo_view_records_modified_by(self):
+        activity_instance = self.start.instance
+        url = reverse('processlib:activity-undo', kwargs={'flow_label': self.process.flow_label,
+                                                          'activity_id': activity_instance.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(activity_instance.modified_by, None)
+        activity_instance.refresh_from_db()
+        self.assertEqual(activity_instance.modified_by, self.user)
+
+    def test_process_start_view_records_modified_by(self):
+        url = reverse('processlib:process-start', kwargs={'flow_label': view_test_flow.label})
+        self.assertIsNone(
+            view_test_flow.activity_model._default_manager.filter(modified_by=self.user).first())
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertIsNotNone(
+            view_test_flow.activity_model._default_manager.filter(modified_by=self.user).first())
+
+    def test_process_cancel_view_records_modified_by(self):
+        url = reverse('processlib:process-cancel', kwargs={'pk': self.process.pk})
+        self.assertIsNone(
+            view_test_flow.activity_model._default_manager.filter(modified_by=self.user).first())
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertIsNotNone(
+            view_test_flow.activity_model._default_manager.filter(
+                status=ActivityInstance.STATUS_CANCELED, modified_by=self.user).first())
+
+    def test_activity_mixin_records_modified_by(self):
+        activity_instance = self.next_activity.instance
+        url = reverse('processlib:process-activity', kwargs={'flow_label': self.process.flow_label,
+                                                             'activity_id': activity_instance.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(activity_instance.modified_by, None)
+        activity_instance.refresh_from_db()
+        self.assertEqual(activity_instance.modified_by, self.user)
