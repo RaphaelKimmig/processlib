@@ -54,15 +54,6 @@ class Flow(object):
             self._get_activity_by_name(None, activity_name).permission
             for activity_name in self._activities
         )
-    def copy(self, name, process_model=None, activity_model=None, verbose_name=None):
-        copy = deepcopy(self)
-        copy.name = name
-        copy.label = flow_label(copy)
-        copy.verbose_name = verbose_name
-        if process_model:
-            copy.process_model = process_model
-        if activity_model:
-            copy.activity_model = activity_model
 
     def __str__(self):
         return str(self.verbose_name or self.name)
