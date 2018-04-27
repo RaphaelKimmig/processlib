@@ -97,10 +97,11 @@ user_processes_test_flow = Flow(
     "user_processes_test_flow",
 ).start_with(
     'start', StartActivity,
+    assign_to=lambda **kwargs: (User.objects.get(username='user_3'), None),
 ).and_then(
     'view', ViewActivity,
-    assign_to=nobody,
     view=ProcessUpdateView.as_view(),
+    assign_to=lambda **kwargs: (User.objects.get(username='user_3'), None),
 ).and_then(
     'end', EndActivity,
 )
@@ -110,6 +111,7 @@ class UserProcessesTest(TestCase):
     def setUp(self):
         self.user_1 = User.objects.create(username='user_1')
         self.user_2 = User.objects.create(username='user_2')
+        self.user_3 = User.objects.create(username='user_3')
 
         self.group_1 = Group.objects.create(name='group_1')
         self.group_both = Group.objects.create(name='group_both')
@@ -117,6 +119,15 @@ class UserProcessesTest(TestCase):
         self.user_1.groups.add(self.group_1)
         self.user_1.groups.add(self.group_both)
         self.user_2.groups.add(self.group_both)
+
+    def test_processes_default_assignment(self):
+        start = user_processes_test_flow.get_start_activity()
+        start.start()
+        start.finish()
+
+        self.assertSequenceEqual([], get_user_processes(self.user_1))
+        self.assertSequenceEqual([], get_user_processes(self.user_2))
+        self.assertSequenceEqual([start.process], get_user_processes(self.user_3))
 
     def test_get_processes_assigned_to_user(self):
         start = user_processes_test_flow.get_start_activity(

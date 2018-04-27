@@ -76,31 +76,35 @@ def cancel_process(process):
     process.save()
 
 
-def get_user_processes(user):
-    return Process.objects.filter(
-        Q(_activity_instances__assigned_group__in=user.groups.all()) &
-        ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED) |
-        Q(_activity_instances__assigned_user=user) &
-        ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED) |
-        Q(_activity_instances__assigned_user__isnull=True,
-          _activity_instances__assigned_group__isnull=True) &
-        ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED)
-    ).distinct()
+def get_user_processes(user, include_unassigned=True):
+    q = Q(_activity_instances__assigned_group__in=user.groups.all()) & ~Q(
+        _activity_instances__status=ActivityInstance.STATUS_CANCELED) | Q(
+        _activity_instances__assigned_user=user) & ~Q(
+        _activity_instances__status=ActivityInstance.STATUS_CANCELED)
+
+    if include_unassigned:
+        q |= Q(
+            _activity_instances__assigned_user__isnull=True,
+            _activity_instances__assigned_group__isnull=True) & ~Q(
+            _activity_instances__status=ActivityInstance.STATUS_CANCELED)
+
+    return Process.objects.filter(q).distinct()
 
 
-def get_user_current_processes(user):
-    return Process.objects.filter(status=Process.STATUS_STARTED).filter(
-        Q(_activity_instances__assigned_group__in=user.groups.all(),
-          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED,
-                                           ActivityInstance.STATUS_ERROR)) |
-        Q(_activity_instances__assigned_user=user,
-          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED,
-                                           ActivityInstance.STATUS_ERROR)) |
-        Q(_activity_instances__assigned_group__isnull=True,
-          _activity_instances__assigned_user__isnull=True,
-          _activity_instances__status__in=(ActivityInstance.STATUS_INSTANTIATED,
-                                           ActivityInstance.STATUS_ERROR)),
-        ).distinct()
+def get_user_current_processes(user, include_unassigned=True):
+    q = (Q(_activity_instances__assigned_group__in=user.groups.all(),
+           _activity_instances__status__in=(
+               ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR)) |
+         Q(_activity_instances__assigned_user=user, _activity_instances__status__in=(
+             ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR)))
+
+    if include_unassigned:
+        q |= Q(
+            _activity_instances__assigned_group__isnull=True,
+            _activity_instances__assigned_user__isnull=True, _activity_instances__status__in=(
+                ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR))
+
+    return Process.objects.filter(status=Process.STATUS_STARTED).filter(q).distinct()
 
 
 def user_has_any_process_perm(user, process):
