@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import PermissionDenied
@@ -534,3 +536,19 @@ class ProcesslibViewTest(TestCase):
         self.assertEqual(activity_instance.modified_by, None)
         activity_instance.refresh_from_db()
         self.assertEqual(activity_instance.modified_by, self.user)
+
+    def test_process_viewset_create_records_modified_by(self):
+        data = {'flow_label': view_test_flow.label}
+
+        post = RequestFactory().post('/', data=data)
+        post.user = self.user
+        post._dont_enforce_csrf_checks = True
+
+        response = ProcessViewSet.as_view({'post': 'create'})(post)
+        self.assertEqual(response.status_code, 201)
+
+        self.assertIsNotNone(
+            view_test_flow.activity_model._default_manager.filter(
+                activity_name='start', modified_by=self.user).first())
+
+
