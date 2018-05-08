@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 from collections import OrderedDict, defaultdict
-from copy import deepcopy
 
 import six
 from django.utils import timezone
