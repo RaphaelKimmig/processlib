@@ -9,10 +9,12 @@ logger = getLogger(__name__)
 try:
     from celery import shared_task
 except ImportError:
-    warnings.warn("Celery is requried for running shared tasks")
     def shared_task(**kwargs):
         def wrap(f):
-            setattr(f, 'delay', f)
+            def delay(*args, **kwargs):
+                warnings.warn("Celery is required for running shared tasks")
+                return f(*args, **kwargs)
+            setattr(f, 'delay', delay)
             return f
         return wrap
 
