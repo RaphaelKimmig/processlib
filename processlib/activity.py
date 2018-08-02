@@ -1,4 +1,5 @@
 import django
+import six
 
 if django.VERSION[0] < 2:
     from django.core.urlresolvers import reverse
@@ -15,6 +16,7 @@ from processlib.tasks import run_async_activity
 logger = logging.getLogger(__name__)
 
 
+@six.python_2_unicode_compatible
 class Activity(object):
     def __init__(self, flow, process, instance, name, verbose_name=None,
                  permission=None, auto_create_permission=True,
