@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class Activity(object):
     def __init__(self, flow, process, instance, name, verbose_name=None,
                  permission=None, auto_create_permission=True,
-                 permission_name = None,
+                 permission_name=None,
                  skip_if=None, assign_to=inherit):
         self.flow = flow
         self.process = process
@@ -45,7 +45,7 @@ class Activity(object):
         return False
 
     def __str__(self):
-        return str(self.verbose_name or self.name)
+        return six.text_type(self.verbose_name or self.name)
 
     def __repr__(self):
         return '{}(name="{}")'.format(self.__class__.__name__, self.name)
