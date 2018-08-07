@@ -1,3 +1,4 @@
+import six
 from django.contrib import messages
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.db.models import Q
@@ -10,12 +11,17 @@ from django.views import View
 from django.views.generic import ListView, DetailView, UpdateView
 from rest_framework import viewsets
 
-from .flow import (get_flows, get_flow)
+from .flow import get_flows, get_flow
 from .models import Process, ActivityInstance
 from .serializers import ProcessSerializer
-from .services import (get_activities_in_process, get_current_activities_in_process,
-                       get_user_processes, get_user_current_processes, get_activity_for_flow,
-                       user_has_activity_perm)
+from .services import (
+    get_activities_in_process,
+    get_current_activities_in_process,
+    get_user_processes,
+    get_user_current_processes,
+    get_activity_for_flow,
+    user_has_activity_perm,
+)
 from .services import user_has_any_process_perm
 
 
@@ -31,14 +37,16 @@ class CurrentAppMixin(object):
         return current_app
 
     def redirect(self, view_name, *args, **kwargs):
-        url = reverse(view_name, args=args, kwargs=kwargs, current_app=self.get_current_app())
+        url = reverse(
+            view_name, args=args, kwargs=kwargs, current_app=self.get_current_app()
+        )
         return HttpResponseRedirect(url)
 
 
 class ProcessListView(CurrentAppMixin, ListView):
-    context_object_name = 'process_list'
+    context_object_name = "process_list"
     queryset = Process.objects.all()
-    detail_view_name = 'processlib:process-detail'
+    detail_view_name = "processlib:process-detail"
     title = _("Processes")
     paginate_by = 10
 
@@ -50,7 +58,7 @@ class ProcessListView(CurrentAppMixin, ListView):
         return self.filter_queryset(qs)
 
     def get_search_query(self):
-        return self.request.GET.get('search', '').strip()
+        return self.request.GET.get("search", "").strip()
 
     def filter_queryset(self, qs):
         search = self.get_search_query()
@@ -80,15 +88,15 @@ class ProcessListView(CurrentAppMixin, ListView):
             return q
 
         for field in self.get_search_fields():
-            q |= Q(**{'{}__icontains'.format(field): query})
+            q |= Q(**{"{}__icontains".format(field): query})
 
         return q
 
     def get_context_data(self, **kwargs):
-        kwargs['flows'] = get_flows()
-        kwargs['search'] = self.get_search_query()
-        kwargs['title'] = self.get_title()
-        kwargs['detail_view_name'] = self.detail_view_name
+        kwargs["flows"] = get_flows()
+        kwargs["search"] = self.get_search_query()
+        kwargs["title"] = self.get_title()
+        kwargs["detail_view_name"] = self.detail_view_name
         return super(ProcessListView, self).get_context_data(**kwargs)
 
 
@@ -109,9 +117,9 @@ class UserCurrentProcessListView(ProcessListView):
 
 
 class ProcessDetailView(DetailView):
-    context_object_name = 'process'
+    context_object_name = "process"
     queryset = Process.objects.all()
-    list_view_name = 'processlib:process-list'
+    list_view_name = "processlib:process-list"
 
     def get_template_names(self):
         names = super(ProcessDetailView, self).get_template_names()
@@ -133,27 +141,27 @@ class ProcessDetailView(DetailView):
         return template_name
 
     def get_return_to_url(self):
-        return_to = self.request.GET.get('return_to', '')
-        if not return_to or not return_to.startswith('/'):
-            return_to = reverse('processlib:process-list-user-current')
+        return_to = self.request.GET.get("return_to", "")
+        if not return_to or not return_to.startswith("/"):
+            return_to = reverse("processlib:process-list-user-current")
         return return_to
 
     def get_context_data(self, **kwargs):
-        kwargs['list_view_name'] = self.list_view_name
-        kwargs['return_to'] = self.get_return_to_url()
-        kwargs['extra_detail_template_name'] = self.get_extra_detail_template_name()
-        kwargs['activities'] = get_activities_in_process(self.object)
+        kwargs["list_view_name"] = self.list_view_name
+        kwargs["return_to"] = self.get_return_to_url()
+        kwargs["extra_detail_template_name"] = self.get_extra_detail_template_name()
+        kwargs["activities"] = get_activities_in_process(self.object)
         return super(ProcessDetailView, self).get_context_data(**kwargs)
 
 
 class ProcessCancelView(UpdateView):
-    template_name = 'processlib/process_cancel.html'
-    context_object_name = 'process'
+    template_name = "processlib/process_cancel.html"
+    context_object_name = "process"
     fields = []
     queryset = Process.objects.all()
 
     def get_success_url(self):
-        return reverse('processlib:process-detail', kwargs={'pk': self.object.pk})
+        return reverse("processlib:process-detail", kwargs={"pk": self.object.pk})
 
     def get_object(self, queryset=None):
         process = super(ProcessCancelView, self).get_object(queryset)
@@ -166,6 +174,7 @@ class ProcessCancelView(UpdateView):
             messages.error(self.request, "You can't cancel that process at this time.")
 
         from .services import cancel_process
+
         user = self.request.user if self.request.user.is_authenticated else None
         cancel_process(self.object, user=user)
 
@@ -176,7 +185,7 @@ class ProcessStartView(CurrentAppMixin, View):
     flow_label = None
 
     def get_activity(self):
-        flow_label = self.kwargs['flow_label']
+        flow_label = self.kwargs["flow_label"]
         flow = get_flow(flow_label)
         activity = flow.get_start_activity(request=self.request)
         if not user_has_activity_perm(self.request.user, activity):
@@ -194,7 +203,7 @@ class ProcessStartView(CurrentAppMixin, View):
         user = request.user if request.user.is_authenticated else None
         self.activity.start()
         self.activity.finish(user=user)
-        return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
+        return self.redirect("processlib:process-detail", pk=self.activity.process.pk)
 
 
 class ActivityByLabelAndIdMixin(object):
@@ -203,7 +212,9 @@ class ActivityByLabelAndIdMixin(object):
     flow_label = None
 
     def get_activity(self):
-        activity = get_activity_for_flow(self.kwargs['flow_label'], self.kwargs['activity_id'])
+        activity = get_activity_for_flow(
+            self.kwargs["flow_label"], self.kwargs["activity_id"]
+        )
         if not user_has_activity_perm(self.request.user, activity):
             raise PermissionDenied
         return activity
@@ -220,16 +231,16 @@ class ActivityUndoView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
         self.activity = self.get_activity()
         user = self.request.user if self.request.user.is_authenticated else None
         self.activity.undo(user=user)
-        return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
+        return self.redirect("processlib:process-detail", pk=self.activity.process.pk)
 
 
 class ActivityRetryView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
     def post(self, request, *args, **kwargs):
         self.activity = self.get_activity()
-        if hasattr(self.activity, 'retry'):
+        if hasattr(self.activity, "retry"):
             messages.success(request, "Retrying {}".format(self.activity))
             self.activity.retry()
-        return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
+        return self.redirect("processlib:process-detail", pk=self.activity.process.pk)
 
 
 class ActivityCancelView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
@@ -237,13 +248,14 @@ class ActivityCancelView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
         self.activity = self.get_activity()
         user = self.request.user if self.request.user.is_authenticated else None
         self.activity.cancel(user=user)
-        return self.redirect('processlib:process-detail', pk=self.activity.process.pk)
+        return self.redirect("processlib:process-detail", pk=self.activity.process.pk)
 
 
 class ActivityMixin(CurrentAppMixin):
     """
     Mixin used by view activities, e.g. those defined as an ActivityView.
     """
+
     activity = None
 
     def user_has_perm(self):
@@ -254,10 +266,10 @@ class ActivityMixin(CurrentAppMixin):
             names = super(CurrentAppMixin, self).get_template_names()
         except ImproperlyConfigured:
             names = []
-        return names + ['processlib/view_activity.html']
+        return names + ["processlib/view_activity.html"]
 
     def get_context_data(self, **kwargs):
-        kwargs['activity'] = self.activity
+        kwargs["activity"] = self.activity
         return super(ActivityMixin, self).get_context_data(**kwargs)
 
     def get_object(self, queryset=None):
@@ -273,36 +285,48 @@ class ActivityMixin(CurrentAppMixin):
         return response
 
     def dispatch(self, request, *args, **kwargs):
-        self.activity = kwargs['activity']
+        self.activity = kwargs["activity"]
 
         if not self.user_has_perm():
             raise PermissionDenied
 
         if self.activity.instance.status == self.activity.instance.STATUS_DONE:
-            messages.info(request,
-                          _("The activity {} has already been done.").format(str(self.activity)))
-            return HttpResponseRedirect(
-                reverse('processlib:process-detail', args=(self.activity.process.pk, ),
-                        current_app=self.get_current_app())
+            messages.info(
+                request,
+                _("The activity {} has already been done.").format(
+                    six.text_type(self.activity)
+                ),
             )
-
+            return HttpResponseRedirect(
+                reverse(
+                    "processlib:process-detail",
+                    args=(self.activity.process.pk,),
+                    current_app=self.get_current_app(),
+                )
+            )
 
         self.activity.start()
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        if '_go_to_next' in self.request.POST:
+        if "_go_to_next" in self.request.POST:
             for activity in get_current_activities_in_process(self.activity.process):
-                if activity.has_view() and user_has_activity_perm(self.request.user, activity):
-                    return reverse('processlib:process-activity',
-                                   kwargs={
-                                       'flow_label': activity.flow.label,
-                                       'activity_id': activity.instance.pk
-                                   },
-                                   current_app=self.get_current_app())
-        return reverse('processlib:process-detail', args=(self.activity.process.pk, ),
-                       current_app=self.get_current_app())
-
+                if activity.has_view() and user_has_activity_perm(
+                    self.request.user, activity
+                ):
+                    return reverse(
+                        "processlib:process-activity",
+                        kwargs={
+                            "flow_label": activity.flow.label,
+                            "activity_id": activity.instance.pk,
+                        },
+                        current_app=self.get_current_app(),
+                    )
+        return reverse(
+            "processlib:process-detail",
+            args=(self.activity.process.pk,),
+            current_app=self.get_current_app(),
+        )
 
 
 class ProcessViewSet(viewsets.ModelViewSet):
@@ -312,9 +336,9 @@ class ProcessViewSet(viewsets.ModelViewSet):
     serializer_class_overrides = {}
 
     def get_process_model(self):
-        if 'flow_label' in self.request.data:
+        if "flow_label" in self.request.data:
             try:
-                flow = get_flow(self.request.data['flow_label'])
+                flow = get_flow(self.request.data["flow_label"])
             except KeyError:
                 return Process
             return flow.process_model
@@ -324,11 +348,13 @@ class ProcessViewSet(viewsets.ModelViewSet):
         return self.get_process_model()._default_manager.all()
 
     def get_serializer_class(self):
-        if self.request.data.get('flow_label') in self.serializer_class_overrides:
-            return self.serializer_class_overrides[self.request.data['flow_label']]
+        if self.request.data.get("flow_label") in self.serializer_class_overrides:
+            return self.serializer_class_overrides[self.request.data["flow_label"]]
+
         class DynamicSerializer(ProcessSerializer):
             class Meta(ProcessSerializer.Meta):
                 model = self.get_process_model()
+
         return DynamicSerializer
 
 

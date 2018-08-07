@@ -1,3 +1,4 @@
+import six
 from django.test import TestCase
 from django.urls import reverse
 from django_webtest import WebTest
@@ -156,7 +157,7 @@ class SimpleViewTest(WebTest):
     def test_process_list_links_detail(self):
         process_list = self.app.get(reverse('processlib:process-list'))
         # process 2 was started last so it should be at the top of the list, thus index 0
-        detail_page = process_list.click(str(self.process_1), index=0)
+        detail_page = process_list.click(six.text_type(self.process_1), index=0)
         self.assertContains(detail_page, self.process_2.id)
         self.assertNotContains(detail_page, self.process_1.id)
 
@@ -169,7 +170,7 @@ class SimpleViewTest(WebTest):
     def test_list_view_allows_creating(self):
         process_list = self.app.get(reverse('processlib:process-list'))
         for form in process_list.forms.values():
-            if "A flow with a view" in str(form.html):
+            if "A flow with a view" in six.text_type(form.html):
                 response = form.submit().form.submit()
                 break
         else:

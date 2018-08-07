@@ -1,6 +1,7 @@
 import uuid
 import string
 
+import six
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -22,7 +23,7 @@ def validate_flow_label(value):
 
 def is_format_string(value):
     try:
-        parsed = next(string.Formatter().parse(str(value)))
+        parsed = next(string.Formatter().parse(six.text_type(value)))
     except ValueError:
         return False
 
@@ -57,9 +58,9 @@ class Process(models.Model):
 
     def __str__(self):
         if not self.flow:
-            return str(self.id)
+            return six.text_type(self.id)
         if self.flow.verbose_name:
-            return str(self.flow.verbose_name)
+            return six.text_type(self.flow.verbose_name)
         return self.flow.name
 
     @property
@@ -75,7 +76,7 @@ class Process(models.Model):
 
     @property
     def description(self):
-        flow_description = str(self.flow.description or self.flow)
+        flow_description = six.text_type(self.flow.description or self.flow)
         if not is_format_string(flow_description):
             return flow_description
         try:

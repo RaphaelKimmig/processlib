@@ -18,10 +18,19 @@ logger = logging.getLogger(__name__)
 
 @six.python_2_unicode_compatible
 class Activity(object):
-    def __init__(self, flow, process, instance, name, verbose_name=None,
-                 permission=None, auto_create_permission=True,
-                 permission_name=None,
-                 skip_if=None, assign_to=inherit):
+    def __init__(
+        self,
+        flow,
+        process,
+        instance,
+        name,
+        verbose_name=None,
+        permission=None,
+        auto_create_permission=True,
+        permission_name=None,
+        skip_if=None,
+        assign_to=inherit,
+    ):
         self.flow = flow
         self.process = process
         self.verbose_name = verbose_name
@@ -50,22 +59,26 @@ class Activity(object):
     def __repr__(self):
         return '{}(name="{}")'.format(self.__class__.__name__, self.name)
 
-    def instantiate(self, predecessor=None, instance_kwargs=None, request=None, **kwargs):
+    def instantiate(
+        self, predecessor=None, instance_kwargs=None, request=None, **kwargs
+    ):
         assert not self.instance
         instance_kwargs = instance_kwargs or {}
 
-        request_user = request.user if request and request.user.is_authenticated else None
-        user, group = self._get_assignment(request_user=request_user, predecessor=predecessor)
+        request_user = (
+            request.user if request and request.user.is_authenticated else None
+        )
+        user, group = self._get_assignment(
+            request_user=request_user, predecessor=predecessor
+        )
 
-        if 'assigned_user' not in instance_kwargs:
-            instance_kwargs['assigned_user'] = user
-        if 'assigned_group' not in instance_kwargs:
-            instance_kwargs['assigned_group'] = group
+        if "assigned_user" not in instance_kwargs:
+            instance_kwargs["assigned_user"] = user
+        if "assigned_group" not in instance_kwargs:
+            instance_kwargs["assigned_group"] = group
 
         self.instance = self.flow.activity_model(
-            process=self.process,
-            activity_name=self.name,
-            **(instance_kwargs or {})
+            process=self.process, activity_name=self.name, **(instance_kwargs or {})
         )
         self.instance.save()
         if predecessor:
@@ -77,8 +90,10 @@ class Activity(object):
         self.instance.save()
 
     def start(self, **kwargs):
-        assert self.instance.status in (self.instance.STATUS_INSTANTIATED,
-                                        self.instance.STATUS_SCHEDULED)
+        assert self.instance.status in (
+            self.instance.STATUS_INSTANTIATED,
+            self.instance.STATUS_SCHEDULED,
+        )
         if not self.instance.started_at:
             self.instance.started_at = timezone.now()
         self.instance.status = self.instance.STATUS_STARTED
@@ -88,25 +103,27 @@ class Activity(object):
         if not self.instance.finished_at:
             self.instance.finished_at = timezone.now()
         self.instance.status = self.instance.STATUS_DONE
-        self.instance.modified_by = kwargs.get('user', None)
+        self.instance.modified_by = kwargs.get("user", None)
         self.instance.save()
         self._instantiate_next_activities()
 
     def cancel(self, **kwargs):
-        assert self.instance.status in (self.instance.STATUS_INSTANTIATED,
-                                        self.instance.STATUS_ERROR)
+        assert self.instance.status in (
+            self.instance.STATUS_INSTANTIATED,
+            self.instance.STATUS_ERROR,
+        )
         self.instance.status = self.instance.STATUS_CANCELED
-        self.instance.modified_by = kwargs.get('user', None)
+        self.instance.modified_by = kwargs.get("user", None)
         self.instance.save()
 
     def undo(self, **kwargs):
         assert self.instance.status == self.instance.STATUS_DONE
         self.instance.finished_at = None
         self.instance.status = self.instance.STATUS_INSTANTIATED
-        self.instance.modified_by = kwargs.get('user', None)
+        self.instance.modified_by = kwargs.get("user", None)
         self.instance.save()
 
-        undo_callback = getattr(self.process, 'undo_{}'.format(self.name), None)
+        undo_callback = getattr(self.process, "undo_{}".format(self.name), None)
         if undo_callback is not None:
             undo_callback()
 
@@ -114,7 +131,7 @@ class Activity(object):
         assert self.instance.status != self.instance.STATUS_DONE
         self.instance.status = self.instance.STATUS_ERROR
         self.instance.finished_at = timezone.now()
-        self.instance.modified_by = kwargs.get('user', None)
+        self.instance.modified_by = kwargs.get("user", None)
         self.instance.save()
 
     def _get_next_activities(self):
@@ -138,6 +155,7 @@ class State(Activity):
     An activity that simple serves as a marker for a certain state being reached, e.g.
     if the activity before it was conditional.
     """
+
     def instantiate(self, **kwargs):
         super(State, self).instantiate(**kwargs)
         self.start()
@@ -148,21 +166,24 @@ class ViewActivity(Activity):
     def __init__(self, view=None, **kwargs):
         super(ViewActivity, self).__init__(**kwargs)
         if view is None:
-            raise ValueError("A ViewActivity requires a view, non given for {}.{}".format(
-                self.flow.label, self.name))
+            raise ValueError(
+                "A ViewActivity requires a view, non given for {}.{}".format(
+                    self.flow.label, self.name
+                )
+            )
         self.view = view
 
     def has_view(self):
         return True
 
     def get_absolute_url(self):
-        return reverse('processlib:process-activity', kwargs={
-            'flow_label': self.flow.label,
-            'activity_id': self.instance.pk
-        })
+        return reverse(
+            "processlib:process-activity",
+            kwargs={"flow_label": self.flow.label, "activity_id": self.instance.pk},
+        )
 
     def dispatch(self, request, *args, **kwargs):
-        kwargs['activity'] = self
+        kwargs["activity"] = self
         return self.view(request, *args, **kwargs)
 
 
@@ -222,22 +243,26 @@ class AsyncActivity(Activity):
 
 
 class StartMixin(Activity):
-    def instantiate(self, predecessor=None, instance_kwargs=None, request=None, **kwargs):
+    def instantiate(
+        self, predecessor=None, instance_kwargs=None, request=None, **kwargs
+    ):
         assert not self.instance
         assert not predecessor
         instance_kwargs = instance_kwargs or {}
 
-        request_user = request.user if request and request.user.is_authenticated else None
-        user, group = self._get_assignment(request_user=request_user, predecessor=predecessor)
-        if 'assigned_user' not in instance_kwargs:
-            instance_kwargs['assigned_user'] = user
-        if 'assigned_group' not in instance_kwargs:
-            instance_kwargs['assigned_group'] = group
+        request_user = (
+            request.user if request and request.user.is_authenticated else None
+        )
+        user, group = self._get_assignment(
+            request_user=request_user, predecessor=predecessor
+        )
+        if "assigned_user" not in instance_kwargs:
+            instance_kwargs["assigned_user"] = user
+        if "assigned_group" not in instance_kwargs:
+            instance_kwargs["assigned_group"] = group
 
         self.instance = self.flow.activity_model(
-            process=self.process,
-            activity_name=self.name,
-            **(instance_kwargs or {})
+            process=self.process, activity_name=self.name, **(instance_kwargs or {})
         )
 
     def finish(self, **kwargs):
@@ -248,7 +273,7 @@ class StartMixin(Activity):
         self.process.save()
         self.instance.process = self.process
         self.instance.status = self.instance.STATUS_DONE
-        self.instance.modified_by = kwargs.get('user', None)
+        self.instance.modified_by = kwargs.get("user", None)
         self.instance.save()
         self._instantiate_next_activities()
 
@@ -273,11 +298,11 @@ class EndActivity(Activity):
         update_fields = []
         if not self.process.finished_at:
             self.process.finished_at = self.instance.finished_at
-            update_fields.append('finished_at')
+            update_fields.append("finished_at")
 
         if not self.process.status == self.process.STATUS_DONE:
             self.process.status = self.process.STATUS_DONE
-            update_fields.append('status')
+            update_fields.append("status")
 
         self.process.save(update_fields=update_fields)
 
@@ -302,7 +327,7 @@ class IfElse(Activity):
 
 class Wait(Activity):
     def __init__(self, flow, process, instance, name, **kwargs):
-        wait_for = kwargs.pop('wait_for', None)
+        wait_for = kwargs.pop("wait_for", None)
         if not wait_for:
             raise ValueError("Wait activity needs to wait for something.")
 
@@ -311,15 +336,17 @@ class Wait(Activity):
         self._wait_for = set(wait_for) if wait_for else None
 
     def _find_existing_instance(self, predecessor):
-        candidates = list(self.flow.activity_model.objects.filter(
-            process=self.process,
-            activity_name=self.name,
-        ))
+        candidates = list(
+            self.flow.activity_model.objects.filter(
+                process=self.process, activity_name=self.name
+            )
+        )
 
         for candidate in candidates:
             # FIXME this only corrects for simple loops, may fail with more complex scenarios
-            if not candidate.successors.filter(status=candidate.STATUS_DONE,
-                                               activity_name=self.name).exists():
+            if not candidate.successors.filter(
+                status=candidate.STATUS_DONE, activity_name=self.name
+            ).exists():
                 return candidate
 
         raise self.flow.activity_model.DoesNotExist()
@@ -333,9 +360,7 @@ class Wait(Activity):
             self.instance = self._find_existing_instance(predecessor)
         except self.flow.activity_model.DoesNotExist:
             self.instance = self.flow.activity_model(
-                process=self.process,
-                activity_name=self.name,
-                **(instance_kwargs or {})
+                process=self.process, activity_name=self.name, **(instance_kwargs or {})
             )
             self.instance.save()
 
@@ -349,7 +374,8 @@ class Wait(Activity):
         self.instance.status = self.instance.STATUS_STARTED
         self.instance.save()
 
-        predecessor_names = {instance.activity_name for instance in self.instance.predecessors.all()}
+        predecessor_names = {
+            instance.activity_name for instance in self.instance.predecessors.all()
+        }
         if self._wait_for.issubset(predecessor_names):
             self.finish()
-

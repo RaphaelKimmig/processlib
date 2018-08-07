@@ -55,7 +55,7 @@ class Flow(object):
         )
 
     def __str__(self):
-        return str(self.verbose_name or self.name)
+        return six.text_type(self.verbose_name or self.name)
 
     def start_with(self, activity_name, activity, **activity_kwargs):
         if self._activities:
