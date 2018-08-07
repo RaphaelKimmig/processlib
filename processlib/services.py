@@ -5,7 +5,6 @@ from .flow import get_flow
 from .models import Process, ActivityInstance
 
 
-
 def get_process_for_flow(flow_label, process_id):
     flow = get_flow(flow_label)
     process = flow.process_model._default_manager.get(pk=process_id)
@@ -22,10 +21,13 @@ def get_activities_to_do(user, process):
     if process.status in (process.STATUS_CANCELED, process.STATUS_DONE):
         return []
 
-    instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
+    instances = process.flow.activity_model._default_manager.filter(
+        process_id=process.pk
+    )
     activities = []
     for instance in instances.exclude(
-            status__in=(process.STATUS_DONE, process.STATUS_CANCELED)).order_by('instantiated_at'):
+        status__in=(process.STATUS_DONE, process.STATUS_CANCELED)
+    ).order_by("instantiated_at"):
         activity = instance.activity
         if not user_has_activity_perm(user, activity):
             continue
@@ -36,16 +38,21 @@ def get_activities_to_do(user, process):
 
 
 def get_current_activities_in_process(process):
-    instances = process.flow.activity_model._default_manager.filter(process_id=process.pk)
+    instances = process.flow.activity_model._default_manager.filter(
+        process_id=process.pk
+    )
     return (
-        instance.activity for instance in instances.exclude(
-        status__in=(process.STATUS_DONE, process.STATUS_CANCELED)).order_by('instantiated_at')
+        instance.activity
+        for instance in instances.exclude(
+            status__in=(process.STATUS_DONE, process.STATUS_CANCELED)
+        ).order_by("instantiated_at")
     )
 
 
 def get_finished_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(
-        process_id=process.pk).order_by('instantiated_at')
+        process_id=process.pk
+    ).order_by("instantiated_at")
     return (
         instance.activity for instance in instances.filter(status=process.STATUS_DONE)
     )
@@ -53,10 +60,13 @@ def get_finished_activities_in_process(process):
 
 def get_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(
-        process_id=process.pk).order_by('instantiated_at')
+        process_id=process.pk
+    ).order_by("instantiated_at")
     return (
-        instance.activity for instance in instances.exclude(status=process.STATUS_CANCELED)
+        instance.activity
+        for instance in instances.exclude(status=process.STATUS_CANCELED)
     )
+
 
 def cancel_and_undo_predecessors(activity):
     activity.cancel()
@@ -78,32 +88,44 @@ def cancel_process(process, user):
 
 def get_user_processes(user, include_unassigned=True):
     q = Q(_activity_instances__assigned_group__in=user.groups.all()) & ~Q(
-        _activity_instances__status=ActivityInstance.STATUS_CANCELED) | Q(
-        _activity_instances__assigned_user=user) & ~Q(
-        _activity_instances__status=ActivityInstance.STATUS_CANCELED)
+        _activity_instances__status=ActivityInstance.STATUS_CANCELED
+    ) | Q(_activity_instances__assigned_user=user) & ~Q(
+        _activity_instances__status=ActivityInstance.STATUS_CANCELED
+    )
 
     if include_unassigned:
         q |= Q(
             _activity_instances__assigned_user__isnull=True,
-            _activity_instances__assigned_group__isnull=True) & ~Q(
-            _activity_instances__status=ActivityInstance.STATUS_CANCELED)
+            _activity_instances__assigned_group__isnull=True,
+        ) & ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED)
 
     return Process.objects.filter(q).distinct()
 
 
 def get_user_current_processes(user, include_unassigned=True):
-    q = (Q(_activity_instances__assigned_group__in=user.groups.all(),
-           _activity_instances__status__in=(
-               ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR)) |
-         Q(_activity_instances__assigned_user=user, _activity_instances__status__in=(
-             ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR)))
+    q = Q(
+        _activity_instances__assigned_group__in=user.groups.all(),
+        _activity_instances__status__in=(
+            ActivityInstance.STATUS_INSTANTIATED,
+            ActivityInstance.STATUS_ERROR,
+        ),
+    ) | Q(
+        _activity_instances__assigned_user=user,
+        _activity_instances__status__in=(
+            ActivityInstance.STATUS_INSTANTIATED,
+            ActivityInstance.STATUS_ERROR,
+        ),
+    )
 
     if include_unassigned:
         q |= Q(
             _activity_instances__assigned_group__isnull=True,
-            _activity_instances__assigned_user__isnull=True, _activity_instances__status__in=(
-                ActivityInstance.STATUS_INSTANTIATED, ActivityInstance.STATUS_ERROR))
-
+            _activity_instances__assigned_user__isnull=True,
+            _activity_instances__status__in=(
+                ActivityInstance.STATUS_INSTANTIATED,
+                ActivityInstance.STATUS_ERROR,
+            ),
+        )
 
     return Process.objects.filter(status=Process.STATUS_STARTED).filter(q).distinct()
 

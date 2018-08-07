@@ -14,10 +14,11 @@ from six import python_2_unicode_compatible
 
 def validate_flow_label(value):
     from .flow import _FLOWS
+
     if value not in _FLOWS:
-        raise ValidationError("Unknown flow label {}, available: ".format(
-            value, ', '.join(_FLOWS.keys())
-        ))
+        raise ValidationError(
+            "Unknown flow label {}, available: ".format(value, ", ".join(_FLOWS.keys()))
+        )
     return value
 
 
@@ -32,9 +33,9 @@ def is_format_string(value):
 
 @python_2_unicode_compatible
 class Process(models.Model):
-    STATUS_STARTED = 'started'
-    STATUS_CANCELED = 'canceled'
-    STATUS_DONE = 'done'
+    STATUS_STARTED = "started"
+    STATUS_CANCELED = "canceled"
+    STATUS_DONE = "done"
 
     STATUS_CHOICES = (
         (STATUS_STARTED, _("started")),
@@ -42,9 +43,11 @@ class Process(models.Model):
         (STATUS_DONE, _("done")),
     )
 
-    search_fields = ['id']
+    search_fields = ["id"]
 
-    status = models.CharField(default=STATUS_STARTED, max_length=16, choices=STATUS_CHOICES)
+    status = models.CharField(
+        default=STATUS_STARTED, max_length=16, choices=STATUS_CHOICES
+    )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     flow_label = models.CharField(max_length=255, validators=[validate_flow_label])
@@ -69,9 +72,12 @@ class Process(models.Model):
 
     def can_cancel(self, user=None):
         return (
-            self.status not in (self.STATUS_DONE, self.STATUS_CANCELED) and not
+            self.status not in (self.STATUS_DONE, self.STATUS_CANCELED)
+            and not
             # FIXME allow cancelation of scheduled instances
-            self._activity_instances.filter(status=ActivityInstance.STATUS_SCHEDULED).exists()
+            self._activity_instances.filter(
+                status=ActivityInstance.STATUS_SCHEDULED
+            ).exists()
         )
 
     @property
@@ -90,20 +96,21 @@ class Process(models.Model):
         :rtype: processlib.flow.Flow
         """
         from .flow import get_flow
+
         return get_flow(self.flow_label)
 
     class Meta:
         verbose_name = _("Process")
-        ordering = ('-finished_at', '-started_at', )
+        ordering = ("-finished_at", "-started_at")
 
 
 class ActivityInstance(models.Model):
-    STATUS_INSTANTIATED = 'instantiated'
-    STATUS_SCHEDULED = 'scheduled'
-    STATUS_STARTED = 'started'
-    STATUS_CANCELED = 'canceled'
-    STATUS_DONE = 'done'
-    STATUS_ERROR = 'error'
+    STATUS_INSTANTIATED = "instantiated"
+    STATUS_SCHEDULED = "scheduled"
+    STATUS_STARTED = "started"
+    STATUS_CANCELED = "canceled"
+    STATUS_DONE = "done"
+    STATUS_ERROR = "error"
 
     STATUS_CHOICES = (
         (STATUS_INSTANTIATED, _("instantiated")),
@@ -114,34 +121,47 @@ class ActivityInstance(models.Model):
         (STATUS_ERROR, _("error")),
     )
 
-    status = models.CharField(default=STATUS_INSTANTIATED, max_length=16, choices=STATUS_CHOICES)
+    status = models.CharField(
+        default=STATUS_INSTANTIATED, max_length=16, choices=STATUS_CHOICES
+    )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    process = models.ForeignKey(Process, related_name='_activity_instances',
-                                on_delete=models.CASCADE)
+    process = models.ForeignKey(
+        Process, related_name="_activity_instances", on_delete=models.CASCADE
+    )
     activity_name = models.CharField(max_length=255)
 
-    predecessors = models.ManyToManyField('self', related_name='successors', symmetrical=False)
+    predecessors = models.ManyToManyField(
+        "self", related_name="successors", symmetrical=False
+    )
 
     instantiated_at = models.DateTimeField(auto_now_add=True)
     scheduled_at = models.DateTimeField(null=True)
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
 
-    modified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-                                    null=True, related_name='+')
+    modified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+"
+    )
 
-    assigned_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-                                      null=True)
+    assigned_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
+    )
     assigned_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True)
 
     def __repr__(self):
-        return '{}(activity_name="{}")'.format(self.__class__.__name__, self.activity_name)
+        return '{}(activity_name="{}")'.format(
+            self.__class__.__name__, self.activity_name
+        )
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ):
         if not self.activity_name:
             raise ValueError("Missing activity name")
-        super(ActivityInstance, self).save(force_insert, force_update, using, update_fields)
+        super(ActivityInstance, self).save(
+            force_insert, force_update, using, update_fields
+        )
 
     @property
     def has_active_successors(self):

@@ -11,83 +11,95 @@ from .activity import StartActivity, EndActivity, ViewActivity, Wait, StartViewA
 from .assignment import inherit, nobody, request_user
 from .flow import Flow
 from .models import ActivityInstance
-from .services import (get_user_processes, get_user_current_processes,
-                       get_current_activities_in_process)
+from .services import (
+    get_user_processes,
+    get_user_current_processes,
+    get_current_activities_in_process,
+)
 from .services import user_has_activity_perm, user_has_any_process_perm
-from .views import (ProcessUpdateView, ProcessDetailView, ProcessCancelView,
-                    ProcessStartView, ProcessActivityView, ActivityUndoView, ActivityRetryView,
-                    ActivityCancelView, ProcessViewSet)
+from .views import (
+    ProcessUpdateView,
+    ProcessDetailView,
+    ProcessCancelView,
+    ProcessStartView,
+    ProcessActivityView,
+    ActivityUndoView,
+    ActivityRetryView,
+    ActivityCancelView,
+    ProcessViewSet,
+)
 
 User = get_user_model()
 
 
 class FlowTest(TestCase):
     def test_never_wait_for_conditional(self):
-        flow = Flow(
-            "flow_name",
-        ).start_with(
-            'optional', StartActivity, skip_if=lambda: True
+        flow = Flow("flow_name").start_with(
+            "optional", StartActivity, skip_if=lambda: True
         )
 
         with self.assertRaises(ValueError):
-            flow.and_then('wait', Wait, wait_for=['optional'])
+            flow.and_then("wait", Wait, wait_for=["optional"])
 
     def test_assignment_inheritance(self):
-        user = User.objects.create(username='assigned')
-        flow = Flow(
-            "assign_inherit_flow",
-        ).start_with(
-            'start', StartActivity,
-        ).and_then(
-            'end', EndActivity,
-            assign_to=inherit,
+        user = User.objects.create(username="assigned")
+        flow = (
+            Flow("assign_inherit_flow")
+            .start_with("start", StartActivity)
+            .and_then("end", EndActivity, assign_to=inherit)
         )
-        start = flow.get_start_activity(activity_instance_kwargs={
-            'assigned_user': user,
-        })
+        start = flow.get_start_activity(
+            activity_instance_kwargs={"assigned_user": user}
+        )
         process = start.process
 
         start.start()
         start.finish()
 
-        self.assertEqual(process.activity_instances.get(activity_name='start').assigned_user, user)
-        self.assertEqual(process.activity_instances.get(activity_name='end').assigned_user, user)
+        self.assertEqual(
+            process.activity_instances.get(activity_name="start").assigned_user, user
+        )
+        self.assertEqual(
+            process.activity_instances.get(activity_name="end").assigned_user, user
+        )
 
     def test_clear_assignment(self):
-        user = User.objects.create(username='assigned')
-        flow = Flow(
-            "assign_clear_flow",
-        ).start_with(
-            'start', StartActivity,
-        ).and_then(
-            'end', EndActivity,
-            assign_to=nobody,
+        user = User.objects.create(username="assigned")
+        flow = (
+            Flow("assign_clear_flow")
+            .start_with("start", StartActivity)
+            .and_then("end", EndActivity, assign_to=nobody)
         )
-        start = flow.get_start_activity(activity_instance_kwargs={
-            'assigned_user': user,
-        })
+        start = flow.get_start_activity(
+            activity_instance_kwargs={"assigned_user": user}
+        )
         process = start.process
 
         start.start()
         start.finish()
 
-        self.assertEqual(process.activity_instances.get(activity_name='start').assigned_user, user)
-        self.assertEqual(process.activity_instances.get(activity_name='end').assigned_user, None)
+        self.assertEqual(
+            process.activity_instances.get(activity_name="start").assigned_user, user
+        )
+        self.assertEqual(
+            process.activity_instances.get(activity_name="end").assigned_user, None
+        )
 
     def test_request_user_assignment(self):
-        user = User.objects.create(username='request_user')
-        flow = Flow(
-            "assign_request_user_flow",
-        ).start_with(
-            'start', StartViewActivity,
-            view=ProcessUpdateView.as_view(fields=[]),
-            assign_to=request_user,
-        ).and_then(
-            'end', EndActivity,
+        user = User.objects.create(username="request_user")
+        flow = (
+            Flow("assign_request_user_flow")
+            .start_with(
+                "start",
+                StartViewActivity,
+                view=ProcessUpdateView.as_view(fields=[]),
+                assign_to=request_user,
+            )
+            .and_then("end", EndActivity)
         )
 
         factory = RequestFactory()
-        request = factory.post('/')
+        request = factory.post("/")
         request.user = user
 
         start = flow.get_start_activity(request=request)
@@ -95,31 +107,36 @@ class FlowTest(TestCase):
 
         start.dispatch(request)
 
-        self.assertEqual(process.activity_instances.get(activity_name='start').assigned_user, user)
+        self.assertEqual(
+            process.activity_instances.get(activity_name="start").assigned_user, user
+        )
 
 
-user_processes_test_flow = Flow(
-    "user_processes_test_flow",
-).start_with(
-    'start', StartActivity,
-    assign_to=lambda **kwargs: (User.objects.get(username='user_default'), None),
-).and_then(
-    'view', ViewActivity,
-    view=ProcessUpdateView.as_view(),
-    assign_to=lambda **kwargs: (User.objects.get(username='user_default'), None),
-).and_then(
-    'end', EndActivity,
+user_processes_test_flow = (
+    Flow("user_processes_test_flow")
+    .start_with(
+        "start",
+        StartActivity,
+        assign_to=lambda **kwargs: (User.objects.get(username="user_default"), None),
+    )
+    .and_then(
+        "view",
+        ViewActivity,
+        view=ProcessUpdateView.as_view(),
+        assign_to=lambda **kwargs: (User.objects.get(username="user_default"), None),
+    )
+    .and_then("end", EndActivity)
 )
 
 
 class UserProcessesTest(TestCase):
     def setUp(self):
-        self.user_1 = User.objects.create(username='user_1')
-        self.user_2 = User.objects.create(username='user_2')
-        self.user_default = User.objects.create(username='user_default')
+        self.user_1 = User.objects.create(username="user_1")
+        self.user_2 = User.objects.create(username="user_2")
+        self.user_default = User.objects.create(username="user_default")
 
-        self.group_1 = Group.objects.create(name='group_1')
-        self.group_both = Group.objects.create(name='group_both')
+        self.group_1 = Group.objects.create(name="group_1")
+        self.group_both = Group.objects.create(name="group_both")
 
         self.user_1.groups.add(self.group_1)
         self.user_1.groups.add(self.group_both)
@@ -136,9 +153,7 @@ class UserProcessesTest(TestCase):
 
     def test_get_processes_assigned_to_user(self):
         start = user_processes_test_flow.get_start_activity(
-            activity_instance_kwargs={
-                'assigned_user': self.user_1,
-            }
+            activity_instance_kwargs={"assigned_user": self.user_1}
         )
         start.start()
         start.finish()
@@ -148,30 +163,25 @@ class UserProcessesTest(TestCase):
 
     def test_get_processes_assigned_to_user_group(self):
         start_1 = user_processes_test_flow.get_start_activity(
-            activity_instance_kwargs={
-                'assigned_group': self.group_1,
-            }
+            activity_instance_kwargs={"assigned_group": self.group_1}
         )
         start_1.start()
         start_1.finish()
 
         start_both = user_processes_test_flow.get_start_activity(
-            activity_instance_kwargs={
-                'assigned_group': self.group_both,
-            }
+            activity_instance_kwargs={"assigned_group": self.group_both}
         )
         start_both.start()
         start_both.finish()
 
-        self.assertSequenceEqual([start_both.process, start_1.process],
-                                 get_user_processes(self.user_1))
+        self.assertSequenceEqual(
+            [start_both.process, start_1.process], get_user_processes(self.user_1)
+        )
         self.assertSequenceEqual([start_both.process], get_user_processes(self.user_2))
 
     def test_assignment_to_multiple_users(self):
         start = user_processes_test_flow.get_start_activity(
-            activity_instance_kwargs={
-                'assigned_user': self.user_1,
-            }
+            activity_instance_kwargs={"assigned_user": self.user_1}
         )
         start.start()
         start.finish()
@@ -196,9 +206,7 @@ class UserProcessesTest(TestCase):
 
     def test_get_current_processes_assigned_to_user_excludes_finished_processes(self):
         start = user_processes_test_flow.get_start_activity(
-            activity_instance_kwargs={
-                'assigned_user': self.user_1,
-            }
+            activity_instance_kwargs={"assigned_user": self.user_1}
         )
         start.start()
         start.finish()
@@ -215,9 +223,7 @@ class UserProcessesTest(TestCase):
 
     def test_get_current_processes_assigned_to_user_excludes_finished_activities(self):
         start = user_processes_test_flow.get_start_activity(
-            activity_instance_kwargs={
-                'assigned_user': self.user_1,
-            }
+            activity_instance_kwargs={"assigned_user": self.user_1}
         )
         start.start()
         start.finish()
@@ -230,52 +236,37 @@ class UserProcessesTest(TestCase):
         self.assertSequenceEqual([], get_user_current_processes(self.user_1))
 
 
-no_permissions_test_flow = Flow(
-    "no_permissions_test_flow",
-).start_with(
-    'start', StartActivity,
-).and_then(
-    'end', EndActivity,
+no_permissions_test_flow = (
+    Flow("no_permissions_test_flow")
+    .start_with("start", StartActivity)
+    .and_then("end", EndActivity)
 )
 
-flow_permissions_test_flow = Flow(
-    "flow_permissions_test_flow",
-    permission='processlib.flow_permission',
-).start_with(
-    'start', StartActivity,
-).and_then(
-    'view', ViewActivity, view=ProcessUpdateView.as_view(),
-).and_then(
-    'end', EndActivity,
+flow_permissions_test_flow = (
+    Flow("flow_permissions_test_flow", permission="processlib.flow_permission")
+    .start_with("start", StartActivity)
+    .and_then("view", ViewActivity, view=ProcessUpdateView.as_view())
+    .and_then("end", EndActivity)
 )
 
-activity_permissions_test_flow = Flow(
-    "activity_permissions_test_flow",
-).start_with(
-    'start', StartActivity,
-    permission='processlib.activity_permission'
-).and_then(
-    'view', ViewActivity, view=ProcessUpdateView.as_view(),
-).and_then(
-    'end', EndActivity,
+activity_permissions_test_flow = (
+    Flow("activity_permissions_test_flow")
+    .start_with("start", StartActivity, permission="processlib.activity_permission")
+    .and_then("view", ViewActivity, view=ProcessUpdateView.as_view())
+    .and_then("end", EndActivity)
 )
 
-combined_permissions_test_flow = Flow(
-    "combined_permissions_test_flow",
-    permission='processlib.flow_permission',
-).start_with(
-    'start', StartActivity,
-    permission='processlib.activity_permission'
-).and_then(
-    'view', ViewActivity, view=ProcessUpdateView.as_view(fields=[]),
-).and_then(
-    'end', EndActivity,
+combined_permissions_test_flow = (
+    Flow("combined_permissions_test_flow", permission="processlib.flow_permission")
+    .start_with("start", StartActivity, permission="processlib.activity_permission")
+    .and_then("view", ViewActivity, view=ProcessUpdateView.as_view(fields=[]))
+    .and_then("end", EndActivity)
 )
 
 
 class ActivityPermissionsTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create(username='user')
+        self.user = User.objects.create(username="user")
 
     def test_no_permissions_flow_requires_no_permissions(self):
         start = no_permissions_test_flow.get_start_activity()
@@ -284,14 +275,18 @@ class ActivityPermissionsTest(TestCase):
     def test_activity_perms_default_to_flow_perms(self):
         start = flow_permissions_test_flow.get_start_activity()
         self.assertFalse(user_has_activity_perm(self.user, start))
-        self.user.user_permissions.add(Permission.objects.get(codename='flow_permission'))
+        self.user.user_permissions.add(
+            Permission.objects.get(codename="flow_permission")
+        )
         self.user = User.objects.get(pk=self.user.pk)
         self.assertTrue(user_has_activity_perm(self.user, start))
 
     def test_activity_perms_work(self):
         start = activity_permissions_test_flow.get_start_activity()
         self.assertFalse(user_has_activity_perm(self.user, start))
-        self.user.user_permissions.add(Permission.objects.get(codename='activity_permission'))
+        self.user.user_permissions.add(
+            Permission.objects.get(codename="activity_permission")
+        )
         self.user = User.objects.get(pk=self.user.pk)
         self.assertTrue(user_has_activity_perm(self.user, start))
 
@@ -310,12 +305,16 @@ class ActivityPermissionsTest(TestCase):
 
         self.assertFalse(user_has_activity_perm(self.user, start))
 
-        self.user.user_permissions.add(Permission.objects.get(codename='flow_permission'))
+        self.user.user_permissions.add(
+            Permission.objects.get(codename="flow_permission")
+        )
         self.user = User.objects.get(pk=self.user.pk)
 
         self.assertFalse(user_has_activity_perm(self.user, start))
 
-        self.user.user_permissions.add(Permission.objects.get(codename='activity_permission'))
+        self.user.user_permissions.add(
+            Permission.objects.get(codename="activity_permission")
+        )
         self.user = User.objects.get(pk=self.user.pk)
 
         self.assertTrue(user_has_activity_perm(self.user, start))
@@ -323,7 +322,7 @@ class ActivityPermissionsTest(TestCase):
 
 class ProcessPermissionsTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create(username='user')
+        self.user = User.objects.create(username="user")
 
     def test_having_flow_perms_is_sufficient_for_having_any_perm(self):
         start = flow_permissions_test_flow.get_start_activity()
@@ -332,7 +331,9 @@ class ProcessPermissionsTest(TestCase):
         process = start.process
 
         self.assertFalse(user_has_any_process_perm(self.user, process))
-        self.user.user_permissions.add(Permission.objects.get(codename='flow_permission'))
+        self.user.user_permissions.add(
+            Permission.objects.get(codename="flow_permission")
+        )
         self.user = User.objects.get(pk=self.user.pk)
         self.assertTrue(user_has_any_process_perm(self.user, process))
 
@@ -343,7 +344,9 @@ class ProcessPermissionsTest(TestCase):
         process = start.process
 
         self.assertFalse(user_has_any_process_perm(self.user, process))
-        self.user.user_permissions.add(Permission.objects.get(codename='activity_permission'))
+        self.user.user_permissions.add(
+            Permission.objects.get(codename="activity_permission")
+        )
         self.user = User.objects.get(pk=self.user.pk)
         self.assertTrue(user_has_any_process_perm(self.user, process))
 
@@ -354,125 +357,157 @@ class ProcessPermissionsTest(TestCase):
 
 class ProcesslibViewPermissionTest(TestCase):
     def setUp(self):
-        self.user_without_perms = User.objects.create(username='user_perms')
-        self.user_with_perms = User.objects.create(username='user_no_perms')
+        self.user_without_perms = User.objects.create(username="user_perms")
+        self.user_with_perms = User.objects.create(username="user_no_perms")
         self.user_with_perms.user_permissions.add(
-            Permission.objects.get(codename='activity_permission'))
+            Permission.objects.get(codename="activity_permission")
+        )
         self.user_with_perms.user_permissions.add(
-            Permission.objects.get(codename='flow_permission'))
+            Permission.objects.get(codename="flow_permission")
+        )
         self.start = combined_permissions_test_flow.get_start_activity()
         self.start.start()
         self.start.finish()
         self.process = self.start.process
 
-        self.get_no_permissions = RequestFactory().get('/')
+        self.get_no_permissions = RequestFactory().get("/")
         self.get_no_permissions.user = self.user_without_perms
 
-        self.get_with_permissions = RequestFactory().get('/')
+        self.get_with_permissions = RequestFactory().get("/")
         self.get_with_permissions.user = self.user_with_perms
 
-        self.post_no_permissions = RequestFactory().post('/')
+        self.post_no_permissions = RequestFactory().post("/")
         self.post_no_permissions.user = self.user_without_perms
 
-        self.post_with_permissions = RequestFactory().post('/')
+        self.post_with_permissions = RequestFactory().post("/")
         self.post_with_permissions.user = self.user_with_perms
 
-    def test_process_detail_view_raises_permission_denied_with_missing_permissions(self):
+    def test_process_detail_view_raises_permission_denied_with_missing_permissions(
+        self
+    ):
         with self.assertRaises(PermissionDenied):
             ProcessDetailView.as_view()(self.get_no_permissions, pk=self.process.pk)
-        response = ProcessDetailView.as_view()(self.get_with_permissions, pk=self.process.pk)
+        response = ProcessDetailView.as_view()(
+            self.get_with_permissions, pk=self.process.pk
+        )
         self.assertEqual(response.status_code, 200)
 
-    def test_process_cancel_view_raises_permission_denied_with_missing_permissions(self):
+    def test_process_cancel_view_raises_permission_denied_with_missing_permissions(
+        self
+    ):
         with self.assertRaises(PermissionDenied):
             ProcessCancelView.as_view()(self.get_no_permissions, pk=self.process.pk)
 
-        response = ProcessCancelView.as_view()(self.get_with_permissions, pk=self.process.pk)
+        response = ProcessCancelView.as_view()(
+            self.get_with_permissions, pk=self.process.pk
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_process_start_view_raises_permission_denied_with_missing_permissions(self):
         with self.assertRaises(PermissionDenied):
-            ProcessStartView.as_view()(self.post_no_permissions,
-                                       flow_label=self.process.flow_label)
-        response = ProcessStartView.as_view()(self.post_with_permissions,
-                                              flow_label=self.process.flow_label)
+            ProcessStartView.as_view()(
+                self.post_no_permissions, flow_label=self.process.flow_label
+            )
+        response = ProcessStartView.as_view()(
+            self.post_with_permissions, flow_label=self.process.flow_label
+        )
         self.assertEqual(response.status_code, 302)
 
-    def test_process_activity_view_raises_permission_denied_with_missing_permissions(self):
+    def test_process_activity_view_raises_permission_denied_with_missing_permissions(
+        self
+    ):
         next_activity = next(get_current_activities_in_process(self.process))
 
         with self.assertRaises(PermissionDenied):
-            ProcessActivityView.as_view()(self.get_no_permissions,
-                                          flow_label=self.process.flow_label,
-                                          activity_id=next_activity.instance.pk)
-        response = ProcessActivityView.as_view()(self.get_with_permissions,
-                                                 flow_label=self.process.flow_label,
-                                                 activity_id=next_activity.instance.pk)
+            ProcessActivityView.as_view()(
+                self.get_no_permissions,
+                flow_label=self.process.flow_label,
+                activity_id=next_activity.instance.pk,
+            )
+        response = ProcessActivityView.as_view()(
+            self.get_with_permissions,
+            flow_label=self.process.flow_label,
+            activity_id=next_activity.instance.pk,
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_undo_activity_view_raises_permission_denied_with_missing_permissions(self):
         with self.assertRaises(PermissionDenied):
-            ActivityUndoView.as_view()(self.post_no_permissions,
-                                       flow_label=self.process.flow_label,
-                                       activity_id=self.start.instance.pk)
-        response = ActivityUndoView.as_view()(self.post_with_permissions,
-                                              flow_label=self.process.flow_label,
-                                              activity_id=self.start.instance.pk)
+            ActivityUndoView.as_view()(
+                self.post_no_permissions,
+                flow_label=self.process.flow_label,
+                activity_id=self.start.instance.pk,
+            )
+        response = ActivityUndoView.as_view()(
+            self.post_with_permissions,
+            flow_label=self.process.flow_label,
+            activity_id=self.start.instance.pk,
+        )
         self.assertEqual(response.status_code, 302)
 
-    def test_retry_activity_view_raises_permission_denied_with_missing_permissions(self):
+    def test_retry_activity_view_raises_permission_denied_with_missing_permissions(
+        self
+    ):
         with self.assertRaises(PermissionDenied):
-            ActivityRetryView.as_view()(self.post_no_permissions,
-                                        flow_label=self.process.flow_label,
-                                        activity_id=self.start.instance.pk)
-        response = ActivityRetryView.as_view()(self.post_with_permissions,
-                                               flow_label=self.process.flow_label,
-                                               activity_id=self.start.instance.pk)
+            ActivityRetryView.as_view()(
+                self.post_no_permissions,
+                flow_label=self.process.flow_label,
+                activity_id=self.start.instance.pk,
+            )
+        response = ActivityRetryView.as_view()(
+            self.post_with_permissions,
+            flow_label=self.process.flow_label,
+            activity_id=self.start.instance.pk,
+        )
         self.assertEqual(response.status_code, 302)
 
-    def test_cancel_activity_view_raises_permission_denied_with_missing_permissions(self):
+    def test_cancel_activity_view_raises_permission_denied_with_missing_permissions(
+        self
+    ):
         next_activity = next(get_current_activities_in_process(self.process))
         with self.assertRaises(PermissionDenied):
-            ActivityCancelView.as_view()(self.post_no_permissions,
-                                         flow_label=self.process.flow_label,
-                                         activity_id=next_activity.instance.pk)
-        response = ActivityCancelView.as_view()(self.post_with_permissions,
-                                                flow_label=self.process.flow_label,
-                                                activity_id=next_activity.instance.pk)
+            ActivityCancelView.as_view()(
+                self.post_no_permissions,
+                flow_label=self.process.flow_label,
+                activity_id=next_activity.instance.pk,
+            )
+        response = ActivityCancelView.as_view()(
+            self.post_with_permissions,
+            flow_label=self.process.flow_label,
+            activity_id=next_activity.instance.pk,
+        )
         self.assertEqual(response.status_code, 302)
 
     def test_process_viewset_requires_permission_to_start_flow(self):
-        data = {'flow_label': self.process.flow_label}
+        data = {"flow_label": self.process.flow_label}
 
-        post_with_permissions = RequestFactory().post('/', data=data)
+        post_with_permissions = RequestFactory().post("/", data=data)
         post_with_permissions.user = self.user_with_perms
         post_with_permissions._dont_enforce_csrf_checks = True
 
-        post_without_permissions = RequestFactory().post('/', data=data)
+        post_without_permissions = RequestFactory().post("/", data=data)
         post_without_permissions.user = self.user_without_perms
         post_without_permissions._dont_enforce_csrf_checks = True
 
-        response = ProcessViewSet.as_view({'post': 'create'})(post_without_permissions)
+        response = ProcessViewSet.as_view({"post": "create"})(post_without_permissions)
         self.assertEqual(response.status_code, 403)
 
-        response = ProcessViewSet.as_view({'post': 'create'})(post_with_permissions)
+        response = ProcessViewSet.as_view({"post": "create"})(post_with_permissions)
         self.assertEqual(response.status_code, 201)
 
 
-view_test_flow = Flow(
-    "view_test_flow",
-).start_with(
-    'start', StartActivity,
-).and_then(
-    'view', ViewActivity, view=ProcessUpdateView.as_view(fields=[]),
-).and_then(
-    'end', EndActivity,
+view_test_flow = (
+    Flow("view_test_flow")
+    .start_with("start", StartActivity)
+    .and_then("view", ViewActivity, view=ProcessUpdateView.as_view(fields=[]))
+    .and_then("end", EndActivity)
 )
+
 
 class ProcesslibViewTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create(username='testuser')
-        self.user.set_password('password')
+        self.user = User.objects.create(username="testuser")
+        self.user.set_password("password")
         self.user.save()
 
         self.start = view_test_flow.get_start_activity()
@@ -481,14 +516,19 @@ class ProcesslibViewTest(TestCase):
         self.process = self.start.process
         self.next_activity = next(get_current_activities_in_process(self.process))
 
-        self.get = RequestFactory().get('/')
+        self.get = RequestFactory().get("/")
         self.get.user = self.user
-        self.client.login(username='testuser', password='password')
+        self.client.login(username="testuser", password="password")
 
     def test_activity_cancel_view_records_modified_by(self):
         activity_instance = self.next_activity.instance
-        url = reverse('processlib:activity-cancel', kwargs={'flow_label': self.process.flow_label,
-                                                            'activity_id': activity_instance.id})
+        url = reverse(
+            "processlib:activity-cancel",
+            kwargs={
+                "flow_label": self.process.flow_label,
+                "activity_id": activity_instance.id,
+            },
+        )
         response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(activity_instance.modified_by, None)
@@ -497,8 +537,13 @@ class ProcesslibViewTest(TestCase):
 
     def test_activity_undo_view_records_modified_by(self):
         activity_instance = self.start.instance
-        url = reverse('processlib:activity-undo', kwargs={'flow_label': self.process.flow_label,
-                                                          'activity_id': activity_instance.id})
+        url = reverse(
+            "processlib:activity-undo",
+            kwargs={
+                "flow_label": self.process.flow_label,
+                "activity_id": activity_instance.id,
+            },
+        )
         response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(activity_instance.modified_by, None)
@@ -506,32 +551,50 @@ class ProcesslibViewTest(TestCase):
         self.assertEqual(activity_instance.modified_by, self.user)
 
     def test_process_start_view_records_modified_by(self):
-        url = reverse('processlib:process-start', kwargs={'flow_label': view_test_flow.label})
+        url = reverse(
+            "processlib:process-start", kwargs={"flow_label": view_test_flow.label}
+        )
         self.assertIsNone(
-            view_test_flow.activity_model._default_manager.filter(modified_by=self.user).first())
-
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)
-
-        self.assertIsNotNone(
-            view_test_flow.activity_model._default_manager.filter(modified_by=self.user).first())
-
-    def test_process_cancel_view_records_modified_by(self):
-        url = reverse('processlib:process-cancel', kwargs={'pk': self.process.pk})
-        self.assertIsNone(
-            view_test_flow.activity_model._default_manager.filter(modified_by=self.user).first())
+            view_test_flow.activity_model._default_manager.filter(
+                modified_by=self.user
+            ).first()
+        )
 
         response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
 
         self.assertIsNotNone(
             view_test_flow.activity_model._default_manager.filter(
-                status=ActivityInstance.STATUS_CANCELED, modified_by=self.user).first())
+                modified_by=self.user
+            ).first()
+        )
+
+    def test_process_cancel_view_records_modified_by(self):
+        url = reverse("processlib:process-cancel", kwargs={"pk": self.process.pk})
+        self.assertIsNone(
+            view_test_flow.activity_model._default_manager.filter(
+                modified_by=self.user
+            ).first()
+        )
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertIsNotNone(
+            view_test_flow.activity_model._default_manager.filter(
+                status=ActivityInstance.STATUS_CANCELED, modified_by=self.user
+            ).first()
+        )
 
     def test_activity_mixin_records_modified_by(self):
         activity_instance = self.next_activity.instance
-        url = reverse('processlib:process-activity', kwargs={'flow_label': self.process.flow_label,
-                                                             'activity_id': activity_instance.id})
+        url = reverse(
+            "processlib:process-activity",
+            kwargs={
+                "flow_label": self.process.flow_label,
+                "activity_id": activity_instance.id,
+            },
+        )
         response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(activity_instance.modified_by, None)
@@ -539,106 +602,101 @@ class ProcesslibViewTest(TestCase):
         self.assertEqual(activity_instance.modified_by, self.user)
 
     def test_process_viewset_create_records_modified_by(self):
-        data = {'flow_label': view_test_flow.label}
+        data = {"flow_label": view_test_flow.label}
 
-        post = RequestFactory().post('/', data=data)
+        post = RequestFactory().post("/", data=data)
         post.user = self.user
         post._dont_enforce_csrf_checks = True
 
-        response = ProcessViewSet.as_view({'post': 'create'})(post)
+        response = ProcessViewSet.as_view({"post": "create"})(post)
         self.assertEqual(response.status_code, 201)
 
         self.assertIsNotNone(
             view_test_flow.activity_model._default_manager.filter(
-                activity_name='start', modified_by=self.user).first())
-
+                activity_name="start", modified_by=self.user
+            ).first()
+        )
 
 
 class ActivityTest(TestCase):
     def test_function_activity_with_error_records_error(self):
-        function_error_flow = Flow(
-            "function_error_flow",
-        ).start_with(
-            'start', StartActivity,
-        ).and_then(
-            'function', FunctionActivity, callback=lambda activity: 1/0,
-        ).and_then(
-            'end', EndActivity,
+        function_error_flow = (
+            Flow("function_error_flow")
+            .start_with("start", StartActivity)
+            .and_then("function", FunctionActivity, callback=lambda activity: 1 / 0)
+            .and_then("end", EndActivity)
         )
         start = function_error_flow.get_start_activity()
         start.start()
         start.finish()
 
-        activity_instance = start.process._activity_instances.get(activity_name='function')
+        activity_instance = start.process._activity_instances.get(
+            activity_name="function"
+        )
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_ERROR)
 
     def test_function_activity_with_error_retry(self):
-        function_error_retry_flow = Flow(
-            "function_error_retry_flow",
-        ).start_with(
-            'start', StartActivity,
-        ).and_then(
-            'function', FunctionActivity, callback=lambda activity: 1/0,
-        ).and_then(
-            'end', EndActivity,
+        function_error_retry_flow = (
+            Flow("function_error_retry_flow")
+            .start_with("start", StartActivity)
+            .and_then("function", FunctionActivity, callback=lambda activity: 1 / 0)
+            .and_then("end", EndActivity)
         )
         start = function_error_retry_flow.get_start_activity()
         start.start()
         start.finish()
 
-        activity_instance = start.process._activity_instances.get(activity_name='function')
+        activity_instance = start.process._activity_instances.get(
+            activity_name="function"
+        )
 
         def working_callback(activity):
-            activity.instance.assigned_group = Group.objects.create(name='side-effect')
+            activity.instance.assigned_group = Group.objects.create(name="side-effect")
             activity.instance.save()
 
-        function_error_retry_flow._activity_kwargs['function']['callback'] = working_callback
+        function_error_retry_flow._activity_kwargs["function"][
+            "callback"
+        ] = working_callback
 
         activity_instance.activity.retry()
         activity_instance.refresh_from_db()
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_DONE)
-        self.assertEqual(activity_instance.assigned_group.name, 'side-effect')
+        self.assertEqual(activity_instance.assigned_group.name, "side-effect")
 
     def test_async_activity_with_error_records_error(self):
-        function_error_flow = Flow(
-            "async_error_flow",
-        ).start_with(
-            'start', StartActivity,
-        ).and_then(
-            'async', AsyncActivity, callback=lambda activity: 1/0,
-        ).and_then(
-            'end', EndActivity,
+        function_error_flow = (
+            Flow("async_error_flow")
+            .start_with("start", StartActivity)
+            .and_then("async", AsyncActivity, callback=lambda activity: 1 / 0)
+            .and_then("end", EndActivity)
         )
         start = function_error_flow.get_start_activity()
         start.start()
         start.finish()
 
-        activity_instance = start.process._activity_instances.get(activity_name='async')
+        activity_instance = start.process._activity_instances.get(activity_name="async")
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_ERROR)
 
     def test_async_activity_with_error_retry(self):
-        async_error_retry_flow = Flow(
-            "async_error_retry_flow",
-        ).start_with(
-            'start', StartActivity,
-        ).and_then(
-            'async', AsyncActivity, callback=lambda activity: 1/0,
-        ).and_then(
-            'end', EndActivity,
+        async_error_retry_flow = (
+            Flow("async_error_retry_flow")
+            .start_with("start", StartActivity)
+            .and_then("async", AsyncActivity, callback=lambda activity: 1 / 0)
+            .and_then("end", EndActivity)
         )
         start = async_error_retry_flow.get_start_activity()
         start.start()
         start.finish()
 
-        activity_instance = start.process._activity_instances.get(activity_name='async')
+        activity_instance = start.process._activity_instances.get(activity_name="async")
 
         def working_callback(activity):
-            activity.instance.assigned_group = Group.objects.create(name='side-effect')
+            activity.instance.assigned_group = Group.objects.create(name="side-effect")
             activity.instance.save()
 
-        async_error_retry_flow._activity_kwargs['async']['callback'] = working_callback
+        async_error_retry_flow._activity_kwargs["async"]["callback"] = working_callback
 
         activity_instance.activity.retry()
         activity_instance.refresh_from_db()
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_DONE)
-        self.assertEqual(activity_instance.assigned_group.name, 'side-effect')
+        self.assertEqual(activity_instance.assigned_group.name, "side-effect")

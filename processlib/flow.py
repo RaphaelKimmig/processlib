@@ -31,8 +31,16 @@ def register_flow(flow):
 
 @python_2_unicode_compatible
 class Flow(object):
-    def __init__(self, name, process_model=Process, activity_model=ActivityInstance,
-                 verbose_name='', description='', permission=None, auto_create_permission=True):
+    def __init__(
+        self,
+        name,
+        process_model=Process,
+        activity_model=ActivityInstance,
+        verbose_name="",
+        description="",
+        permission=None,
+        auto_create_permission=True,
+    ):
         self.name = name
         self.activity_model = activity_model
         self.verbose_name = verbose_name
@@ -66,10 +74,16 @@ class Flow(object):
         return self
 
     def and_then(self, activity_name, activity, **activity_kwargs):
-        predecessor = list(self._activities)[-1]  # implicitly connect to previously added
-        return self.add_activity(activity_name, activity, predecessor, **activity_kwargs)
+        predecessor = list(self._activities)[
+            -1
+        ]  # implicitly connect to previously added
+        return self.add_activity(
+            activity_name, activity, predecessor, **activity_kwargs
+        )
 
-    def add_activity(self, activity_name, activity, after=None, wait_for=None, **activity_kwargs):
+    def add_activity(
+        self, activity_name, activity, after=None, wait_for=None, **activity_kwargs
+    ):
         if not self._activities:
             raise ValueError("A start activity has to be added first with start_with")
 
@@ -82,13 +96,13 @@ class Flow(object):
             if isinstance(wait_for, six.string_types):
                 raise TypeError("wait_for should be a list or tuple")
 
-            activity_kwargs['wait_for'] = wait_for
+            activity_kwargs["wait_for"] = wait_for
 
             for name in wait_for:
                 if name not in predecessors:
                     predecessors.append(name)
 
-                if self._activity_kwargs[name].get('skip_if'):
+                if self._activity_kwargs[name].get("skip_if"):
                     raise ValueError("Never wait for conditional activities.")
 
         for predecessor in predecessors:
@@ -101,20 +115,25 @@ class Flow(object):
         return self
 
     def _get_activity_by_name(self, process, activity_name):
-        return self._activities[activity_name](flow=self, process=process, instance=None,
-                                               name=activity_name,
-                                               **self._activity_kwargs[activity_name])
+        return self._activities[activity_name](
+            flow=self,
+            process=process,
+            instance=None,
+            name=activity_name,
+            **self._activity_kwargs[activity_name]
+        )
 
     def get_activity_by_instance(self, instance):
         activity_name = instance.activity_name
         process = self.process_model._default_manager.get(pk=instance.process_id)
         kwargs = self._activity_kwargs[activity_name]
         return self._activities[activity_name](
-            flow=self, process=process, instance=instance, name=activity_name,
-            **kwargs
+            flow=self, process=process, instance=instance, name=activity_name, **kwargs
         )
 
-    def get_start_activity(self, process_kwargs=None, activity_instance_kwargs=None, request=None):
+    def get_start_activity(
+        self, process_kwargs=None, activity_instance_kwargs=None, request=None
+    ):
         process = self.process_model(
             flow_label=self.label,
             started_at=timezone.now(),
@@ -124,4 +143,3 @@ class Flow(object):
         activity = self._get_activity_by_name(process, list(self._activities)[0])
         activity.instantiate(instance_kwargs=activity_instance_kwargs, request=request)
         return activity
-
