@@ -1,0 +1,3 @@
+-e ..
+celery
+django_rest_framework
