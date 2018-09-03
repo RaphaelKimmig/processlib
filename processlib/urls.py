@@ -13,7 +13,6 @@ from processlib.views import (
     ProcessCancelView,
 )
 
-app_name = "processlib"
 urlpatterns = [
     url(r"^process/$", ProcessListView.as_view(), name="process-list"),
     url(
