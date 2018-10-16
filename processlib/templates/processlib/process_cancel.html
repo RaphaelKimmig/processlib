@@ -21,7 +21,7 @@
             {% if process.can_cancel %}
                 <form method="post">
                     {% csrf_token %}
-                    <a class="btn btn-default" href="{% url 'processlib:process-detail' process.pk %}">{% trans "Back" %}</a>
+                    <a class="btn btn-default" href="{% url 'processlib:process-detail' process.id %}">{% trans "Back" %}</a>
                     <input type="submit" name="cancel" value="{% trans "Cancel process" %}" class="btn btn-danger">
                 </form>
             {% else %}

@@ -386,9 +386,9 @@ class ProcesslibViewPermissionTest(TestCase):
         self
     ):
         with self.assertRaises(PermissionDenied):
-            ProcessDetailView.as_view()(self.get_no_permissions, pk=self.process.pk)
+            ProcessDetailView.as_view()(self.get_no_permissions, pk=self.process.id)
         response = ProcessDetailView.as_view()(
-            self.get_with_permissions, pk=self.process.pk
+            self.get_with_permissions, pk=self.process.id
         )
         self.assertEqual(response.status_code, 200)
 
@@ -396,10 +396,10 @@ class ProcesslibViewPermissionTest(TestCase):
         self
     ):
         with self.assertRaises(PermissionDenied):
-            ProcessCancelView.as_view()(self.get_no_permissions, pk=self.process.pk)
+            ProcessCancelView.as_view()(self.get_no_permissions, pk=self.process.id)
 
         response = ProcessCancelView.as_view()(
-            self.get_with_permissions, pk=self.process.pk
+            self.get_with_permissions, pk=self.process.id
         )
         self.assertEqual(response.status_code, 200)
 
@@ -570,7 +570,7 @@ class ProcesslibViewTest(TestCase):
         )
 
     def test_process_cancel_view_records_modified_by(self):
-        url = reverse("processlib:process-cancel", kwargs={"pk": self.process.pk})
+        url = reverse("processlib:process-cancel", kwargs={"pk": self.process.id})
         self.assertIsNone(
             view_test_flow.activity_model._default_manager.filter(
                 modified_by=self.user

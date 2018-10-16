@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load processlib_tags %}
 <div class="process-list-item">
-    <h2><a href="{% url detail_view_name process.pk %}?return_to={{ request.path }}">{{ process|capfirst }}</a></h2>
+    <h2><a href="{% url detail_view_name process.id %}?return_to={{ request.path }}">{{ process|capfirst }}</a></h2>
     <div class="row">
         <div class="col-md-4">
             <p>

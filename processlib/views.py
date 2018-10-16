@@ -130,7 +130,7 @@ class ProcessDetailView(DetailView):
         process = super(ProcessDetailView, self).get_object(queryset)
         if not user_has_any_process_perm(self.request.user, process):
             raise PermissionDenied
-        return process.flow.process_model.objects.get(pk=process.pk)
+        return process.flow.process_model.objects.get(pk=process.id)
 
     def get_extra_detail_template_name(self):
         template_name = "processlib/extra_detail_{}.html".format(self.object.flow.label)
@@ -167,7 +167,7 @@ class ProcessCancelView(UpdateView):
         process = super(ProcessCancelView, self).get_object(queryset)
         if not user_has_any_process_perm(self.request.user, process):
             raise PermissionDenied
-        return process.flow.process_model.objects.get(pk=process.pk)
+        return process.flow.process_model.objects.get(pk=process.id)
 
     def form_valid(self, form):
         if not self.object.can_cancel(self.request.user):
@@ -203,7 +203,7 @@ class ProcessStartView(CurrentAppMixin, View):
         user = request.user if request.user.is_authenticated else None
         self.activity.start()
         self.activity.finish(user=user)
-        return self.redirect("processlib:process-detail", pk=self.activity.process.pk)
+        return self.redirect("processlib:process-detail", pk=self.activity.process.id)
 
 
 class ActivityByLabelAndIdMixin(object):
@@ -231,7 +231,7 @@ class ActivityUndoView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
         self.activity = self.get_activity()
         user = self.request.user if self.request.user.is_authenticated else None
         self.activity.undo(user=user)
-        return self.redirect("processlib:process-detail", pk=self.activity.process.pk)
+        return self.redirect("processlib:process-detail", pk=self.activity.process.id)
 
 
 class ActivityRetryView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
@@ -240,7 +240,7 @@ class ActivityRetryView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
         if hasattr(self.activity, "retry"):
             messages.success(request, "Retrying {}".format(self.activity))
             self.activity.retry()
-        return self.redirect("processlib:process-detail", pk=self.activity.process.pk)
+        return self.redirect("processlib:process-detail", pk=self.activity.process.id)
 
 
 class ActivityCancelView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
@@ -248,7 +248,7 @@ class ActivityCancelView(CurrentAppMixin, ActivityByLabelAndIdMixin, View):
         self.activity = self.get_activity()
         user = self.request.user if self.request.user.is_authenticated else None
         self.activity.cancel(user=user)
-        return self.redirect("processlib:process-detail", pk=self.activity.process.pk)
+        return self.redirect("processlib:process-detail", pk=self.activity.process.id)
 
 
 class ActivityMixin(CurrentAppMixin):
@@ -300,7 +300,7 @@ class ActivityMixin(CurrentAppMixin):
             return HttpResponseRedirect(
                 reverse(
                     "processlib:process-detail",
-                    args=(self.activity.process.pk,),
+                    args=(self.activity.process.id,),
                     current_app=self.get_current_app(),
                 )
             )
@@ -324,7 +324,7 @@ class ActivityMixin(CurrentAppMixin):
                     )
         return reverse(
             "processlib:process-detail",
-            args=(self.activity.process.pk,),
+            args=(self.activity.process.id,),
             current_app=self.get_current_app(),
         )
 

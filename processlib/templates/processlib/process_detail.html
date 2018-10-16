@@ -10,7 +10,7 @@
                 <a class="btn btn-default pull-left" href="{{ return_to }}">{% trans "Back" %}</a>
                 <div class="pull-right">
                     {% if process.can_cancel %}
-                        <a class="btn btn-danger" href="{% url 'processlib:process-cancel' process.pk %}">
+                        <a class="btn btn-danger" href="{% url 'processlib:process-cancel' process.id %}">
                             {% blocktrans with process=process %}Cancel process{% endblocktrans %}
                         </a>
                     {% endif %}

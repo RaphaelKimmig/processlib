@@ -2,8 +2,8 @@
 {% load i18n %}
 {% block content %}
     <h1>{{ activity }}</h1>
-    {% if activity.process.pk %}
-        <a href="{% url 'processlib:process-detail' activity.process.pk %}">{{ activity.process }}</a>
+    {% if activity.process.id %}
+        <a href="{% url 'processlib:process-detail' activity.process.id %}">{{ activity.process }}</a>
     {% endif %}
     <form id="activity-{{ activity.name }}-form" enctype="multipart/form-data" method="post">
         {% csrf_token %}

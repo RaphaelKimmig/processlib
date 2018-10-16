@@ -22,7 +22,7 @@ def get_activities_to_do(user, process):
         return []
 
     instances = process.flow.activity_model._default_manager.filter(
-        process_id=process.pk
+        process_id=process.id
     )
     activities = []
     for instance in instances.exclude(
@@ -39,7 +39,7 @@ def get_activities_to_do(user, process):
 
 def get_current_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(
-        process_id=process.pk
+        process_id=process.id
     )
     return (
         instance.activity
@@ -51,7 +51,7 @@ def get_current_activities_in_process(process):
 
 def get_finished_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(
-        process_id=process.pk
+        process_id=process.id
     ).order_by("instantiated_at")
     return (
         instance.activity for instance in instances.filter(status=process.STATUS_DONE)
@@ -60,7 +60,7 @@ def get_finished_activities_in_process(process):
 
 def get_activities_in_process(process):
     instances = process.flow.activity_model._default_manager.filter(
-        process_id=process.pk
+        process_id=process.id
     ).order_by("instantiated_at")
     return (
         instance.activity
