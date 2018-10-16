@@ -150,7 +150,7 @@ def user_has_activity_perm(user, activity):
         # if there are no required permissions we grant access
         return True
     elif activity.permission and activity.flow.permission:
-        return user.has_perm(activity.permission) and user.has_perm(activity.permission)
+        return user.has_perm(activity.permission) and user.has_perm(activity.flow.permission)
     elif activity.permission:
         return user.has_perm(activity.permission)
     elif activity.flow.permission:

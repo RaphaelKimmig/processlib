@@ -319,6 +319,12 @@ class ActivityPermissionsTest(TestCase):
 
         self.assertTrue(user_has_activity_perm(self.user, start))
 
+        self.user.user_permissions.remove(
+            Permission.objects.get(codename="flow_permission")
+        )
+        self.user = User.objects.get(pk=self.user.pk)
+        self.assertFalse(user_has_activity_perm(self.user, start))
+
 
 class ProcessPermissionsTest(TestCase):
     def setUp(self):
