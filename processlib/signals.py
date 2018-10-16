@@ -33,7 +33,7 @@ def create_flow_permissions(app_config, **kwargs):
                 codename=codename,
                 defaults={"name": six.text_type(flow)},
             )
-        activity_content_type = ContentType.objects.get_for_model(flow.activity_model)
+        activity_content_type = ContentType.objects.get_for_model(flow.process_model)
         for activity_name in flow._activities:
             activity = flow._get_activity_by_name(None, activity_name)
             if not activity.auto_create_permission or activity.permission is None:
