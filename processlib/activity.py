@@ -39,6 +39,11 @@ class Activity(object):
         self.permission_name = permission_name or verbose_name or name
         self.name = name
         self.instance = instance
+
+        # ensure that we have a single referenced process object
+        if self.instance:
+            self.instance.process = self.process
+
         self._skip = skip_if
         self._get_assignment = assign_to
 

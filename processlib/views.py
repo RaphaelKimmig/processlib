@@ -279,9 +279,10 @@ class ActivityMixin(CurrentAppMixin):
         return self.activity.flow.process_model._default_manager.all()
 
     def form_valid(self, *args, **kwargs):
+        super(ActivityMixin, self).form_valid(*args, **kwargs)
         user = self.request.user if self.request.user.is_authenticated else None
         self.activity.finish(user=user)
-        return super(ActivityMixin, self).form_valid(*args, **kwargs)
+        return HttpResponseRedirect(self.get_success_url())
 
     def dispatch(self, request, *args, **kwargs):
         self.activity = kwargs["activity"]

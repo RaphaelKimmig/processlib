@@ -505,7 +505,8 @@ class ProcesslibViewPermissionTest(TestCase):
 view_test_flow = (
     Flow("view_test_flow")
     .start_with("start", StartActivity)
-    .and_then("view", ViewActivity, view=ProcessUpdateView.as_view(fields=[]))
+    .and_then("view_one", ViewActivity, view=ProcessUpdateView.as_view(fields=[]))
+    .and_then("view_two", ViewActivity, view=ProcessUpdateView.as_view(fields=[]))
     .and_then("end", EndActivity)
 )
 
@@ -606,6 +607,56 @@ class ProcesslibViewTest(TestCase):
         self.assertEqual(activity_instance.modified_by, None)
         activity_instance.refresh_from_db()
         self.assertEqual(activity_instance.modified_by, self.user)
+
+    def test_finishing_process_works(self):
+        activity_instance = self.next_activity.instance
+        url = reverse(
+            "processlib:process-activity",
+            kwargs={
+                "flow_label": self.process.flow_label,
+                "activity_id": activity_instance.id,
+            },
+        )
+        self.client.post(url)
+
+        activity_instance = next(
+            get_current_activities_in_process(self.process)
+        ).instance
+        url = reverse(
+            "processlib:process-activity",
+            kwargs={
+                "flow_label": self.process.flow_label,
+                "activity_id": activity_instance.id,
+            },
+        )
+        self.client.post(url)
+        self.process.refresh_from_db()
+        self.assertEqual(self.process.status, self.process.STATUS_DONE)
+
+    def test_go_to_next(self):
+        activity_instance = self.next_activity.instance
+        url = reverse(
+            "processlib:process-activity",
+            kwargs={
+                "flow_label": self.process.flow_label,
+                "activity_id": activity_instance.id,
+            },
+        )
+        response = self.client.post(url, data={"_go_to_next": "true"})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            reverse(
+                "processlib:process-activity",
+                kwargs={
+                    "flow_label": self.process.flow_label,
+                    "activity_id": next(
+                        get_current_activities_in_process(self.process)
+                    ).instance.id,
+                },
+            ),
+        )
 
     def test_process_viewset_create_records_modified_by(self):
         data = {"flow_label": view_test_flow.label}
