@@ -1,9 +1,10 @@
 import json
 
+from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import PermissionDenied
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, TransactionTestCase, RequestFactory
 from django.urls import reverse
 
 from processlib.activity import FunctionActivity, AsyncActivity
@@ -720,6 +721,8 @@ class ActivityTest(TestCase):
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_DONE)
         self.assertEqual(activity_instance.assigned_group.name, "side-effect")
 
+
+class AsyncActivityTest(TransactionTestCase):
     def test_async_activity_with_error_records_error(self):
         function_error_flow = (
             Flow("async_error_flow")
@@ -728,8 +731,10 @@ class ActivityTest(TestCase):
             .and_then("end", EndActivity)
         )
         start = function_error_flow.get_start_activity()
-        start.start()
-        start.finish()
+
+        with transaction.atomic():
+            start.start()
+            start.finish()
 
         activity_instance = start.process._activity_instances.get(activity_name="async")
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_ERROR)
@@ -742,8 +747,10 @@ class ActivityTest(TestCase):
             .and_then("end", EndActivity)
         )
         start = async_error_retry_flow.get_start_activity()
-        start.start()
-        start.finish()
+
+        with transaction.atomic():
+            start.start()
+            start.finish()
 
         activity_instance = start.process._activity_instances.get(activity_name="async")
 

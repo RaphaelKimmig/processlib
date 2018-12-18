@@ -6,6 +6,7 @@ if django.VERSION[0] < 2:
 else:
     from django.urls import reverse
 
+from django.db import transaction
 from django.utils import timezone
 
 import logging
@@ -234,7 +235,9 @@ class AsyncActivity(Activity):
         self.instance.status = self.instance.STATUS_SCHEDULED
         self.instance.scheduled_at = timezone.now()
         self.instance.save()
-        run_async_activity.delay(self.flow.label, self.instance.pk)
+        transaction.on_commit(
+            lambda: run_async_activity.delay(self.flow.label, self.instance.pk)
+        )
 
     def retry(self, **kwargs):
         assert self.instance.status == self.instance.STATUS_ERROR
