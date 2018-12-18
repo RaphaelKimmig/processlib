@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='processlib',
-    version='0.6.2',
+    version='0.6.3',
     url='https://github.com/RaphaelKimmig/processlib',
-    download_url='https://github.com/RaphaelKimmig/processlib/archive/0.6.2.tar.gz',
+    download_url='https://github.com/RaphaelKimmig/processlib/archive/0.6.3.tar.gz',
     author='Raphael Kimmig',
     author_email='raphael@ampad.de',
     description='A workflow library for python',
