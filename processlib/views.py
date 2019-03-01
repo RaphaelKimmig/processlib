@@ -11,6 +11,7 @@ from django.views import View
 from django.views.generic import ListView, DetailView, UpdateView
 from rest_framework import viewsets
 
+from .forms import ProcessCancelForm
 from .flow import get_flows, get_flow
 from .models import Process, ActivityInstance
 from .serializers import ProcessSerializer
@@ -157,8 +158,13 @@ class ProcessDetailView(DetailView):
 class ProcessCancelView(UpdateView):
     template_name = "processlib/process_cancel.html"
     context_object_name = "process"
-    fields = []
     queryset = Process.objects.all()
+    form_class = ProcessCancelForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def get_success_url(self):
         return reverse("processlib:process-detail", kwargs={"pk": self.object.pk})
@@ -170,9 +176,6 @@ class ProcessCancelView(UpdateView):
         return process.flow.process_model.objects.get(pk=process.id)
 
     def form_valid(self, form):
-        if not self.object.can_cancel(self.request.user):
-            messages.error(self.request, "You can't cancel that process at this time.")
-
         from .services import cancel_process
 
         user = self.request.user if self.request.user.is_authenticated else None

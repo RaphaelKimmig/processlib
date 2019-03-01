@@ -3,11 +3,12 @@ import json
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase, TransactionTestCase, RequestFactory
 from django.urls import reverse
 
 from processlib.activity import FunctionActivity, AsyncActivity
+from processlib.forms import ProcessCancelForm
 from .activity import StartActivity, EndActivity, ViewActivity, Wait, StartViewActivity
 from .assignment import inherit, nobody, request_user
 from .flow import Flow
@@ -410,6 +411,16 @@ class ProcesslibViewPermissionTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    def test_process_cancel_shows_error_if_cancel_not_possible(self):
+        self.process.status = self.process.STATUS_DONE
+        self.process.save()  # can't cancel a done process
+
+        response = ProcessCancelView.as_view()(
+            self.post_with_permissions, pk=self.process.id
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("can not be canceled", response.rendered_content)
+
     def test_process_start_view_raises_permission_denied_with_missing_permissions(self):
         with self.assertRaises(PermissionDenied):
             ProcessStartView.as_view()(
@@ -576,6 +587,18 @@ class ProcesslibViewTest(TestCase):
                 modified_by=self.user
             ).first()
         )
+
+    def test_process_cancel_form(self):
+        form = ProcessCancelForm(data={}, instance=self.process, user=self.user)
+        self.assertTrue(form.is_valid())
+
+    def test_process_cancel_form_shows_error_if_can_not_cancel(self):
+        self.process.status = self.process.STATUS_DONE
+        self.process.save()
+
+        form = ProcessCancelForm(data={}, instance=self.process, user=self.user)
+        self.assertFalse(form.is_valid())
+        self.assertIn("You can't cancel", form.errors["__all__"][0])
 
     def test_process_cancel_view_records_modified_by(self):
         url = reverse("processlib:process-cancel", kwargs={"pk": self.process.id})

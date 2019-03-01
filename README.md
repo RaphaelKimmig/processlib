@@ -1,5 +1,10 @@
 A workflow/process library for python. WIP
 
+Testing
+--------
+Run the tests using `python -m django test --settings processlib.test_settings`.
+
+
 ISSUES
 ---------------
 - Right now undoing or canceling activities may result in undesirable states.
