@@ -283,8 +283,9 @@ class ActivityMixin(CurrentAppMixin):
 
     def form_valid(self, *args, **kwargs):
         super(ActivityMixin, self).form_valid(*args, **kwargs)
-        user = self.request.user if self.request.user.is_authenticated else None
-        self.activity.finish(user=user)
+        if "_go_to_next" in self.request.POST:
+            user = self.request.user if self.request.user.is_authenticated else None
+            self.activity.finish(user=user)
         return HttpResponseRedirect(self.get_success_url())
 
     def dispatch(self, request, *args, **kwargs):
