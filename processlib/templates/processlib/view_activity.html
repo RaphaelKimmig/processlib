@@ -1,7 +1,14 @@
 {% extends "processlib/layout.html" %}
 {% load i18n %}
 {% block content %}
-    <h1>{{ activity }}</h1>
+
+    {% block headline %}
+        <h1>
+            {{ activity.flow }}<br />
+            <small>{{ activity }}</small>
+        </h1>
+    {% endblock %}
+
     {% if activity.process.id %}
         <a href="{% url 'processlib:process-detail' activity.process.id %}">{{ activity.process }}</a>
     {% endif %}
