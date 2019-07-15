@@ -357,6 +357,7 @@ class ProcessViewSet(viewsets.ModelViewSet):
         class DynamicSerializer(ProcessSerializer):
             class Meta(ProcessSerializer.Meta):
                 model = self.get_process_model()
+                fields = '__all__'
 
         return DynamicSerializer
 
