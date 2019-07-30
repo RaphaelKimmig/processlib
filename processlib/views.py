@@ -283,8 +283,11 @@ class ActivityMixin(CurrentAppMixin):
 
     def form_valid(self, *args, **kwargs):
         super(ActivityMixin, self).form_valid(*args, **kwargs)
-        user = self.request.user if self.request.user.is_authenticated else None
-        self.activity.finish(user=user)
+
+        if '_finish' in self.request.POST or '_finish_go_to_next' in self.request.POST:
+            user = self.request.user if self.request.user.is_authenticated else None
+            self.activity.finish(user=user)
+
         return HttpResponseRedirect(self.get_success_url())
 
     def dispatch(self, request, *args, **kwargs):
@@ -312,7 +315,7 @@ class ActivityMixin(CurrentAppMixin):
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        if "_go_to_next" in self.request.POST:
+        if "_finish_go_to_next" in self.request.POST:
             for activity in get_current_activities_in_process(self.activity.process):
                 if activity.has_view() and user_has_activity_perm(
                     self.request.user, activity
@@ -325,11 +328,15 @@ class ActivityMixin(CurrentAppMixin):
                         },
                         current_app=self.get_current_app(),
                     )
-        return reverse(
-            "processlib:process-detail",
-            args=(self.activity.process.id,),
-            current_app=self.get_current_app(),
-        )
+        elif "_finish" in self.request.POST:
+            return reverse(
+                "processlib:process-detail",
+                args=(self.activity.process.id,),
+                current_app=self.get_current_app(),
+            )
+        else:
+            # redirect to current page if not finished
+            return self.request.get_full_path()
 
 
 class ProcessViewSet(viewsets.ModelViewSet):

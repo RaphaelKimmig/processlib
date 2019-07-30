@@ -101,7 +101,7 @@ class FlowTest(TestCase):
         )
 
         factory = RequestFactory()
-        request = factory.post("/")
+        request = factory.post("/", {"_finish": True})
         request.user = user
 
         start = flow.get_start_activity(request=request)
@@ -626,11 +626,23 @@ class ProcesslibViewTest(TestCase):
                 "activity_id": activity_instance.id,
             },
         )
-        response = self.client.post(url)
+        response = self.client.post(url, {"_finish": True})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(activity_instance.modified_by, None)
         activity_instance.refresh_from_db()
         self.assertEqual(activity_instance.modified_by, self.user)
+
+    def test_not_finishing_redirects_to_current_activity(self):
+        activity_instance = self.next_activity.instance
+        url = reverse(
+            "processlib:process-activity",
+            kwargs={
+                "flow_label": self.process.flow_label,
+                "activity_id": activity_instance.id,
+            },
+        )
+        response = self.client.post(url)
+        self.assertRedirects(response, url)
 
     def test_finishing_process_works(self):
         activity_instance = self.next_activity.instance
@@ -641,7 +653,7 @@ class ProcesslibViewTest(TestCase):
                 "activity_id": activity_instance.id,
             },
         )
-        self.client.post(url)
+        self.client.post(url, {"_finish": True})
 
         activity_instance = next(
             get_current_activities_in_process(self.process)
@@ -653,7 +665,7 @@ class ProcesslibViewTest(TestCase):
                 "activity_id": activity_instance.id,
             },
         )
-        self.client.post(url)
+        self.client.post(url, {"_finish": True})
         self.process.refresh_from_db()
         self.assertEqual(self.process.status, self.process.STATUS_DONE)
 
@@ -666,7 +678,7 @@ class ProcesslibViewTest(TestCase):
                 "activity_id": activity_instance.id,
             },
         )
-        response = self.client.post(url, data={"_go_to_next": "true"})
+        response = self.client.post(url, data={"_finish_go_to_next": "true"})
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
