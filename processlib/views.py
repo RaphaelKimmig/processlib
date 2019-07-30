@@ -315,6 +315,10 @@ class ActivityMixin(CurrentAppMixin):
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
+        # stay on current page if activity not finished
+        if self.activity.instance.finished_at is None:
+            return self.request.get_full_path()
+
         if "_finish_go_to_next" in self.request.POST:
             for activity in get_current_activities_in_process(self.activity.process):
                 if activity.has_view() and user_has_activity_perm(
@@ -328,15 +332,11 @@ class ActivityMixin(CurrentAppMixin):
                         },
                         current_app=self.get_current_app(),
                     )
-        elif "_finish" in self.request.POST:
-            return reverse(
-                "processlib:process-detail",
-                args=(self.activity.process.id,),
-                current_app=self.get_current_app(),
-            )
-        else:
-            # redirect to current page if not finished
-            return self.request.get_full_path()
+        return reverse(
+            "processlib:process-detail",
+            args=(self.activity.process.id,),
+            current_app=self.get_current_app(),
+        )
 
 
 class ProcessViewSet(viewsets.ModelViewSet):
