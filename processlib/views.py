@@ -288,7 +288,8 @@ class ActivityMixin(CurrentAppMixin):
         if '_finish' in self.request.POST or '_finish_go_to_next' in self.request.POST:
             user = self.request.user if self.request.user.is_authenticated else None
             self.activity.finish(user=user)
-        self._finish_go_to_next = '_finish_go_to_next' in self.request.POST
+        if '_finish_go_to_next' in self.request.POST:
+            self._finish_go_to_next = True
 
         return HttpResponseRedirect(self.get_success_url())
 
