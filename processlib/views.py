@@ -260,6 +260,7 @@ class ActivityMixin(CurrentAppMixin):
     """
 
     activity = None
+    _go_to_next = False
 
     def user_has_perm(self):
         return user_has_activity_perm(self.request.user, self.activity)
@@ -285,6 +286,7 @@ class ActivityMixin(CurrentAppMixin):
         super(ActivityMixin, self).form_valid(*args, **kwargs)
         user = self.request.user if self.request.user.is_authenticated else None
         self.activity.finish(user=user)
+        self._go_to_next = "_go_to_next" in self.request.POST
         return HttpResponseRedirect(self.get_success_url())
 
     def dispatch(self, request, *args, **kwargs):
@@ -312,7 +314,7 @@ class ActivityMixin(CurrentAppMixin):
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        if "_go_to_next" in self.request.POST:
+        if self._go_to_next:
             for activity in get_current_activities_in_process(self.activity.process):
                 if activity.has_view() and user_has_activity_perm(
                     self.request.user, activity
