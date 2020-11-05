@@ -132,22 +132,24 @@ class ActivityInstance(models.Model):
     activity_name = models.CharField(max_length=255)
 
     predecessors = models.ManyToManyField(
-        "self", related_name="successors", symmetrical=False
+        "self", related_name="successors", symmetrical=False, blank=True
     )
 
     instantiated_at = models.DateTimeField(auto_now_add=True)
-    scheduled_at = models.DateTimeField(null=True)
-    started_at = models.DateTimeField(null=True)
-    finished_at = models.DateTimeField(null=True)
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
 
     modified_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+"
     )
 
     assigned_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )
-    assigned_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True)
+    assigned_group = models.ForeignKey(
+        Group, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     def __repr__(self):
         return '{}(activity_name="{}")'.format(
