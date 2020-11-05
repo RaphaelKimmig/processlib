@@ -123,7 +123,11 @@ class ProcessDetailView(DetailView):
     list_view_name = "processlib:process-list"
 
     def get_template_names(self):
-        names = super(ProcessDetailView, self).get_template_names()
+        try:
+            names = super(ProcessDetailView, self).get_template_names()
+        except ImproperlyConfigured:
+            names = []
+        names.append("processlib/{}_detail.html".format(self.object.flow.label))
         names.append("processlib/process_detail.html")
         return names
 
@@ -156,10 +160,18 @@ class ProcessDetailView(DetailView):
 
 
 class ProcessCancelView(UpdateView):
-    template_name = "processlib/process_cancel.html"
     context_object_name = "process"
     queryset = Process.objects.all()
     form_class = ProcessCancelForm
+
+    def get_template_names(self):
+        try:
+            names = super(ProcessDetailView, self).get_template_names()
+        except ImproperlyConfigured:
+            names = []
+        names.append("processlib/{}_cancel.html".format(self.object.flow.label))
+        names.append("processlib/process_cancel.html")
+        return names
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -270,7 +282,10 @@ class ActivityMixin(CurrentAppMixin):
             names = super(CurrentAppMixin, self).get_template_names()
         except ImproperlyConfigured:
             names = []
-        return names + ["processlib/view_activity.html"]
+        names.append("processlib/{0}_{1}.html".format(self.activity.flow.label, self.activity.name))
+        names.append("processlib/{}_activity.html".format(self.activity.flow.label))
+        names.append("processlib/view_activity.html")
+        return names
 
     def get_context_data(self, **kwargs):
         kwargs["activity"] = self.activity
