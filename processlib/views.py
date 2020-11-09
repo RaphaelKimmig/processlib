@@ -166,7 +166,7 @@ class ProcessCancelView(UpdateView):
 
     def get_template_names(self):
         try:
-            names = super(ProcessDetailView, self).get_template_names()
+            names = super(ProcessCancelView, self).get_template_names()
         except ImproperlyConfigured:
             names = []
         names.append("processlib/{}_cancel.html".format(self.object.flow.label))
