@@ -251,6 +251,36 @@ class AsyncActivity(Activity):
         self.callback(self)
 
 
+class AsyncViewActivity(AsyncActivity):
+    """
+    An async activity that renders a view while the async task is running.
+    The view could be AsyncActivityView with a custom template_name
+    """
+
+    def __init__(self, view=None, **kwargs):
+        super(AsyncViewActivity, self).__init__(**kwargs)
+        if view is None:
+            raise ValueError(
+                "An AsyncViewActivity requires a view, non given for {}.{}".format(
+                    self.flow.label, self.name
+                )
+            )
+        self.view = view
+
+    def has_view(self):
+        return True
+
+    def get_absolute_url(self):
+        return reverse(
+            "processlib:process-activity",
+            kwargs={"flow_label": self.flow.label, "activity_id": self.instance.pk},
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        kwargs["activity"] = self
+        return self.view(request, *args, **kwargs)
+
+
 class StartMixin(Activity):
     def instantiate(
         self, predecessor=None, instance_kwargs=None, request=None, **kwargs
