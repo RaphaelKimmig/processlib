@@ -8,7 +8,7 @@ from django.template.loader import get_template
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
-from django.views.generic import ListView, DetailView, UpdateView
+from django.views.generic import ListView, DetailView, UpdateView, TemplateView
 from rest_framework import viewsets
 
 from .forms import ProcessCancelForm
@@ -389,3 +389,25 @@ class ProcessViewSet(viewsets.ModelViewSet):
 
 class ProcessUpdateView(ActivityMixin, UpdateView):
     pass
+
+
+class AsyncActivityView(ActivityMixin, TemplateView):
+    """
+    A view that will render a template while the async activity is running
+    and will redirect to the successor once it is done.
+
+    For use with AsyncViewActivity.
+    """
+    _finish_go_to_next = True
+
+    def dispatch(self, request, *args, **kwargs):
+        self.activity = kwargs["activity"]
+
+        if not self.user_has_perm():
+            raise PermissionDenied
+
+        if self.activity.instance.status == self.activity.instance.STATUS_DONE:
+            return HttpResponseRedirect(self.get_success_url())
+
+        return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
+
