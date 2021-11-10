@@ -2,11 +2,16 @@ from __future__ import unicode_literals
 
 from collections import OrderedDict, defaultdict
 
+import logging
 import six
 from django.utils import timezone
 from six import python_2_unicode_compatible
 
 from .models import Process, ActivityInstance
+
+
+logger = logging.getLogger(__name__)
+
 
 _FLOWS = {}
 
@@ -25,7 +30,7 @@ def flow_label(flow):
 
 def register_flow(flow):
     if flow.label in _FLOWS:
-        raise ValueError("Flow {} already registered".format(flow.label))
+        logger.warning("Flow {} already registered, re-registering".format(flow.label))
     _FLOWS[flow.label] = flow
 
 
