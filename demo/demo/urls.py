@@ -1,4 +1,4 @@
-from django.conf.urls import url, include
+from django.urls import url, include
 from rest_framework import routers
 
 from crm_inbox.flows import *  # noqa

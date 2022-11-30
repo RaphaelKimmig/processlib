@@ -1,5 +1,5 @@
-from django.conf.urls import url, include
+from django.urls import re_path, include
 
 urlpatterns = [
-    url(r'^process/', include(('processlib.urls', "processlib"), namespace="processlib")),
+    re_path(r'^process/', include(('processlib.urls', "processlib"), namespace="processlib")),
 ]
