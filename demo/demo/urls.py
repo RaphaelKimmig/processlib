@@ -1,4 +1,4 @@
-from django.urls import url, include
+from django.urls import path, include
 from rest_framework import routers
 
 from crm_inbox.flows import *  # noqa
@@ -10,6 +10,6 @@ router.register('process', ProcessViewSet)
 
 
 urlpatterns = [
-    url(r'^process/', include('processlib.urls', namespace='processlib')),
-    url(r'^api/', include(router.urls)),
+    path('process/', include('processlib.urls', namespace='processlib')),
+    path('api/', include(router.urls)),
 ]
