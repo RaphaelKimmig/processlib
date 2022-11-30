@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.urls import re_path
 
 from processlib.views import (
     ProcessListView,
@@ -14,40 +14,40 @@ from processlib.views import (
 )
 
 urlpatterns = [
-    url(r"^process/$", ProcessListView.as_view(), name="process-list"),
-    url(
+    re_path(r"^process/$", ProcessListView.as_view(), name="process-list"),
+    re_path(
         r"^process/user-current/$",
         UserCurrentProcessListView.as_view(),
         name="process-list-user-current",
     ),
-    url(r"^process/user/$", UserProcessListView.as_view(), name="process-list-user"),
-    url(
+    re_path(r"^process/user/$", UserProcessListView.as_view(), name="process-list-user"),
+    re_path(
         r"^process/start/(?P<flow_label>.*)/$",
         ProcessStartView.as_view(),
         name="process-start",
     ),
-    url(
+    re_path(
         r"^process/activity/(?P<flow_label>[^/]+)/(?P<activity_id>.*)/$",
         ProcessActivityView.as_view(),
         name="process-activity",
     ),
-    url(
+    re_path(
         r"^process/undo/(?P<flow_label>[^/]+)/(?P<activity_id>.*)/$",
         ActivityUndoView.as_view(),
         name="activity-undo",
     ),
-    url(
+    re_path(
         r"^process/cancel/(?P<flow_label>[^/]+)/(?P<activity_id>.*)/$",
         ActivityCancelView.as_view(),
         name="activity-cancel",
     ),
-    url(
+    re_path(
         r"^process/retry/(?P<flow_label>[^/]+)/(?P<activity_id>.*)/$",
         ActivityRetryView.as_view(),
         name="activity-retry",
     ),
-    url(r"^process/(?P<pk>.*)/$", ProcessDetailView.as_view(), name="process-detail"),
-    url(
+    re_path(r"^process/(?P<pk>.*)/$", ProcessDetailView.as_view(), name="process-detail"),
+    re_path(
         r"^process/(?P<pk>.*)/cancel$",
         ProcessCancelView.as_view(),
         name="process-cancel",

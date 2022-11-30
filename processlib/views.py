@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import ListView, DetailView, UpdateView, TemplateView
 from rest_framework import viewsets
