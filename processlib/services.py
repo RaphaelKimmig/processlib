@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.utils import timezone
 
-from .flow import get_flow
+from .flow import get_flow, get_flows
 from .models import Process, ActivityInstance
 
 
@@ -99,12 +99,7 @@ def get_user_processes(user, include_unassigned=True):
             _activity_instances__assigned_group__isnull=True,
         ) & ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED)
 
-    processes = Process.objects.filter(
-        status=Process.STATUS_STARTED,
-    ).filter(q).distinct()
-    for process in processes:
-        if not user_has_any_process_perm(user, process):
-            processes = processes.exclude(pk=process.pk)
+    q = filter_by_permissions(q, user)
     return Process.objects.filter(q).distinct()
 
 
@@ -133,13 +128,19 @@ def get_user_current_processes(user, include_unassigned=True):
             ),
         )
 
-    processes = Process.objects.filter(
+    q = filter_by_permissions(q, user)
+    return Process.objects.filter(
         status=Process.STATUS_STARTED,
     ).filter(q).distinct()
-    for process in processes:
-        if not user_has_any_process_perm(user, process):
-            processes = processes.exclude(pk=process.pk)
-    return Process.objects.filter(status=Process.STATUS_STARTED).filter(q).distinct()
+
+
+def filter_by_permissions(q, user):
+    flows = get_flows()
+    flows_label_list = [flow[0] for flow in flows if not flow[1].permission or user.has_perm(flow[1].permission)]
+    q &= Q(
+        _activity_instances__process__flow_label__in=flows_label_list
+    )
+    return q
 
 
 def user_has_any_process_perm(user, process):
