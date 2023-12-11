@@ -99,6 +99,12 @@ def get_user_processes(user, include_unassigned=True):
             _activity_instances__assigned_group__isnull=True,
         ) & ~Q(_activity_instances__status=ActivityInstance.STATUS_CANCELED)
 
+    processes = Process.objects.filter(
+        status=Process.STATUS_STARTED,
+    ).filter(q).distinct()
+    for process in processes:
+        if not user_has_any_process_perm(user, process):
+            processes = processes.exclude(pk=process.pk)
     return Process.objects.filter(q).distinct()
 
 
@@ -127,6 +133,12 @@ def get_user_current_processes(user, include_unassigned=True):
             ),
         )
 
+    processes = Process.objects.filter(
+        status=Process.STATUS_STARTED,
+    ).filter(q).distinct()
+    for process in processes:
+        if not user_has_any_process_perm(user, process):
+            processes = processes.exclude(pk=process.pk)
     return Process.objects.filter(status=Process.STATUS_STARTED).filter(q).distinct()
 
 
