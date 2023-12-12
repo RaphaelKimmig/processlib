@@ -22,6 +22,9 @@ from .services import user_has_activity_perm, user_has_any_process_perm
 from .views import (
     ProcessUpdateView,
     ProcessDetailView,
+    ProcessListView,
+    UserProcessListView,
+    UserCurrentProcessListView,
     ProcessCancelView,
     ProcessStartView,
     ProcessActivityView,
@@ -390,6 +393,45 @@ class ProcesslibViewPermissionTest(TestCase):
         self.post_with_permissions = RequestFactory().post("/")
         self.post_with_permissions.user = self.user_with_perms
 
+    def test_process_list_view_respects_flow_permission(
+        self
+    ):
+        no_perm_response = ProcessListView.as_view()(
+            self.get_no_permissions,
+        )
+        self.assertNotContains(no_perm_response, self.process.pk)
+
+        perm_response = ProcessListView.as_view()(
+            self.get_with_permissions,
+        )
+        self.assertContains(perm_response, self.process.pk)
+
+    def test_user_process_list_view_respects_flow_permission(
+            self
+    ):
+        no_perm_response = UserProcessListView.as_view()(
+            self.get_no_permissions,
+        )
+        self.assertNotContains(no_perm_response, self.process.pk)
+
+        perm_response = UserProcessListView.as_view()(
+            self.get_with_permissions,
+        )
+        self.assertContains(perm_response, self.process.pk)
+
+    def test_user_current_process_list_view_respects_flow_permission(
+            self
+    ):
+        no_perm_response = UserCurrentProcessListView.as_view()(
+            self.get_no_permissions,
+        )
+        self.assertNotContains(no_perm_response, self.process.pk)
+
+        perm_response = UserCurrentProcessListView.as_view()(
+            self.get_with_permissions,
+        )
+        self.assertContains(perm_response, self.process.pk)
+
     def test_process_detail_view_raises_permission_denied_with_missing_permissions(
         self
     ):
@@ -709,6 +751,15 @@ class ProcesslibViewTest(TestCase):
                 activity_name="start", modified_by=self.user
             ).first()
         )
+
+    def test_process_list(self):
+        url = reverse(
+            "processlib:process-list",
+        )
+        response = self.client.get(url)
+
+        self.assertContains(response, "view_test_flow")
+        self.assertContains(response, str(self.process.pk))
 
 
 class ActivityTest(TestCase):

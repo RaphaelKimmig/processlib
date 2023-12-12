@@ -22,6 +22,7 @@ from .services import (
     get_user_current_processes,
     get_activity_for_flow,
     user_has_activity_perm,
+    get_permission_filter,
 )
 from .services import user_has_any_process_perm
 
@@ -56,7 +57,8 @@ class ProcessListView(CurrentAppMixin, ListView):
 
     def get_queryset(self):
         qs = super(ProcessListView, self).get_queryset()
-        return self.filter_queryset(qs)
+        qs = self.filter_queryset(qs)
+        return qs.filter(get_permission_filter(self.request.user))
 
     def get_search_query(self):
         return self.request.GET.get("search", "").strip()
@@ -282,7 +284,11 @@ class ActivityMixin(CurrentAppMixin):
             names = super(CurrentAppMixin, self).get_template_names()
         except ImproperlyConfigured:
             names = []
-        names.append("processlib/{0}_{1}.html".format(self.activity.flow.label, self.activity.name))
+        names.append(
+            "processlib/{0}_{1}.html".format(
+                self.activity.flow.label, self.activity.name
+            )
+        )
         names.append("processlib/{}_activity.html".format(self.activity.flow.label))
         names.append("processlib/view_activity.html")
         return names
@@ -300,10 +306,10 @@ class ActivityMixin(CurrentAppMixin):
     def form_valid(self, *args, **kwargs):
         super(ActivityMixin, self).form_valid(*args, **kwargs)
 
-        if '_finish' in self.request.POST or '_finish_go_to_next' in self.request.POST:
+        if "_finish" in self.request.POST or "_finish_go_to_next" in self.request.POST:
             user = self.request.user if self.request.user.is_authenticated else None
             self.activity.finish(user=user)
-        if '_finish_go_to_next' in self.request.POST:
+        if "_finish_go_to_next" in self.request.POST:
             self._finish_go_to_next = True
 
         return HttpResponseRedirect(self.get_success_url())
@@ -382,7 +388,7 @@ class ProcessViewSet(viewsets.ModelViewSet):
         class DynamicSerializer(ProcessSerializer):
             class Meta(ProcessSerializer.Meta):
                 model = self.get_process_model()
-                fields = '__all__'
+                fields = "__all__"
 
         return DynamicSerializer
 
@@ -398,6 +404,7 @@ class AsyncActivityView(ActivityMixin, TemplateView):
 
     For use with AsyncViewActivity.
     """
+
     _finish_go_to_next = True
 
     def dispatch(self, request, *args, **kwargs):
@@ -410,4 +417,3 @@ class AsyncActivityView(ActivityMixin, TemplateView):
             return HttpResponseRedirect(self.get_success_url())
 
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
-
