@@ -58,7 +58,7 @@ class ProcessListView(CurrentAppMixin, ListView):
     def get_queryset(self):
         qs = super(ProcessListView, self).get_queryset()
         qs = self.filter_queryset(qs)
-        return qs.filter(get_permission_filter(self.request.user))
+        return qs.filter(get_permission_filter(self.request.user)).distinct()
 
     def get_search_query(self):
         return self.request.GET.get("search", "").strip()
