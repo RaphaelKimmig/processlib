@@ -1,6 +1,8 @@
 import django
 import six
+from django.contrib import messages
 from django.http import HttpResponseRedirect
+from django.utils.translation import gettext_lazy as _
 
 if django.VERSION[0] < 2:
     from django.core.urlresolvers import reverse
@@ -32,6 +34,10 @@ class Activity(object):
         permission_name=None,
         skip_if=None,
         assign_to=inherit,
+        completed_redirect_url=None,
+        completed_message=_("The activity {} has already been done.").format(
+            six.text_type()
+        ),
     ):
         self.flow = flow
         self.process = process
@@ -41,6 +47,8 @@ class Activity(object):
         self.permission_name = permission_name or verbose_name or name
         self.name = name
         self.instance = instance
+        self.completed_message = completed_message
+        self.completed_redirect_url = completed_redirect_url
 
         # ensure that we have a single referenced process object
         if self.instance:
@@ -113,6 +121,18 @@ class Activity(object):
         self.instance.modified_by = kwargs.get("user", None)
         self.instance.save()
         self._instantiate_next_activities()
+
+    def finish_process(self):
+        update_fields = []
+        if not self.process.finished_at:
+            self.process.finished_at = self.instance.finished_at
+            update_fields.append("finished_at")
+
+        if not self.process.status == self.process.STATUS_DONE:
+            self.process.status = self.process.STATUS_DONE
+            update_fields.append("status")
+
+        self.process.save(update_fields=update_fields)
 
     def cancel(self, **kwargs):
         assert self.instance.status in (
@@ -327,34 +347,31 @@ class StartViewActivity(StartMixin, ViewActivity):
 
 class EndActivity(Activity):
     def instantiate(self, **kwargs):
-        super(EndActivity, self).instantiate(**kwargs)
+        super().instantiate(**kwargs)
         self.start()
-        self.finish()
-
-    def finish(self, **kwargs):
-        super(EndActivity, self).finish(**kwargs)
-
-        update_fields = []
-        if not self.process.finished_at:
-            self.process.finished_at = self.instance.finished_at
-            update_fields.append("finished_at")
-
-        if not self.process.status == self.process.STATUS_DONE:
-            self.process.status = self.process.STATUS_DONE
-            update_fields.append("status")
-
-        self.process.save(update_fields=update_fields)
+        # Finish activity
+        self.finish(**kwargs)
+        # Finish complete process
+        self.finish_process()
 
 
-class EndRedirectActivity(EndActivity):
-    def __init__(self, redirect_url_callback=None, **kwargs):
-        self.redirect_url_callback = redirect_url_callback
-        super(EndActivity, self).__init__(**kwargs)
+class EndRedirectActivity(Activity):
+    def __init__(self, redirect_url_callback=None, completed_message="", **kwargs):
+        super().__init__(**kwargs)
 
-    def instantiate(self, **kwargs):
-        # HACK: we skip the EndActivity implementation
-        # because it would finish the activity right away
-        super(EndActivity, self).instantiate(**kwargs)
+        # Do not use Activity default
+        self.completed_message = completed_message
+
+        # Retain 'redirect_url_callback' to maintain backward compatibility
+        if redirect_url_callback:
+            self.completed_redirect_url = redirect_url_callback
+
+        if not self.completed_redirect_url:
+            raise ValueError(
+                "An EndRedirectActivity requires a 'completed_redirect_url', non given for {}.{}".format(
+                    self.flow.label, self.name
+                )
+            )
 
     def has_view(self):
         return True
@@ -367,17 +384,17 @@ class EndRedirectActivity(EndActivity):
 
     def dispatch(self, request, *args, **kwargs):
         self.start()
-        url = reverse(
-            "processlib:process-detail", kwargs={"pk": self.instance.process.pk}
-        )
-        try:
-            if self.redirect_url_callback:
-                url = self.redirect_url_callback(self)
-            self.finish()
-        except Exception as e:
-            logger.exception(e)
-            self.error(exception=e)
-        return HttpResponseRedirect(url)
+        # Finish activity
+        self.finish(**kwargs)
+        # Finish complete process
+        self.finish_process()
+
+        if self.completed_message:
+            messages.success(
+                request,
+                self.completed_message,
+            )
+        return HttpResponseRedirect(self.completed_redirect_url)
 
 
 class FormActivity(Activity):

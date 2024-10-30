@@ -1,4 +1,3 @@
-import six
 from django.contrib import messages
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.db.models import Q
@@ -323,17 +322,19 @@ class ActivityMixin(CurrentAppMixin):
         if self.activity.instance.status == self.activity.instance.STATUS_DONE:
             messages.info(
                 request,
-                _("The activity {} has already been done.").format(
-                    six.text_type(self.activity)
-                ),
+                self.activity.completed_message,
             )
-            return HttpResponseRedirect(
-                reverse(
+
+            # Use custom redirect url for activity or default one
+            redirect_url = (
+                self.activity.completed_redirect_url
+                or reverse(
                     "processlib:process-detail",
                     args=(self.activity.process.id,),
-                    current_app=self.get_current_app(),
+                    current_app=self.get_current_app()
                 )
             )
+            return HttpResponseRedirect(redirect_url)
 
         self.activity.start()
         return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
