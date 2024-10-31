@@ -35,9 +35,7 @@ class Activity(object):
         skip_if=None,
         assign_to=inherit,
         completed_redirect_url=None,
-        completed_message=_("The activity {} has already been done.").format(
-            six.text_type()
-        ),
+        completed_message=""
     ):
         self.flow = flow
         self.process = process
@@ -47,7 +45,7 @@ class Activity(object):
         self.permission_name = permission_name or verbose_name or name
         self.name = name
         self.instance = instance
-        self.completed_message = completed_message
+        self.completed_message = self.get_completed_message(completed_message)
         self.completed_redirect_url = completed_redirect_url
 
         # ensure that we have a single referenced process object
@@ -64,6 +62,11 @@ class Activity(object):
 
     def should_wait(self):
         return False
+
+    def get_completed_message(self, completed_message: str) -> str:
+        if not completed_message:
+            return _("The activity {activity} has already been done.").format(activity=self.__str__())
+        return completed_message
 
     def has_view(self):
         return False
@@ -346,16 +349,6 @@ class StartViewActivity(StartMixin, ViewActivity):
 
 
 class EndActivity(Activity):
-    def instantiate(self, **kwargs):
-        super().instantiate(**kwargs)
-        self.start()
-        # Finish activity
-        self.finish(**kwargs)
-        # Finish complete process
-        self.finish_process()
-
-
-class EndRedirectActivity(Activity):
     def __init__(self, redirect_url_callback=None, completed_message="", **kwargs):
         super().__init__(**kwargs)
 
@@ -366,21 +359,15 @@ class EndRedirectActivity(Activity):
         if redirect_url_callback:
             self.completed_redirect_url = redirect_url_callback
 
+    def instantiate(self, **kwargs):
+        super().instantiate(**kwargs)
+
         if not self.completed_redirect_url:
-            raise ValueError(
-                "An EndRedirectActivity requires a 'completed_redirect_url', non given for {}.{}".format(
-                    self.flow.label, self.name
-                )
-            )
-
-    def has_view(self):
-        return True
-
-    def get_absolute_url(self):
-        return reverse(
-            "processlib:process-activity",
-            kwargs={"flow_label": self.flow.label, "activity_id": self.instance.pk},
-        )
+            self.start()
+            # Finish activity
+            self.finish(**kwargs)
+            # Finish complete process
+            self.finish_process()
 
     def dispatch(self, request, *args, **kwargs):
         self.start()
@@ -395,6 +382,10 @@ class EndRedirectActivity(Activity):
                 self.completed_message,
             )
         return HttpResponseRedirect(self.completed_redirect_url)
+
+
+class EndRedirectActivity(EndActivity):
+    pass
 
 
 class FormActivity(Activity):
