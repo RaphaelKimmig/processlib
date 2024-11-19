@@ -87,6 +87,9 @@ def cancel_process(process, user):
 
 
 def get_user_processes(user, include_unassigned=True):
+    if not user.is_authenticated:
+        return Process.objects.none()
+
     q = Q(_activity_instances__assigned_group__in=user.groups.all()) & ~Q(
         _activity_instances__status=ActivityInstance.STATUS_CANCELED
     ) | Q(_activity_instances__assigned_user=user) & ~Q(
@@ -104,6 +107,9 @@ def get_user_processes(user, include_unassigned=True):
 
 
 def get_user_current_processes(user, include_unassigned=True):
+    if not user.is_authenticated:
+        return Process.objects.none()
+
     q = Q(
         _activity_instances__assigned_group__in=user.groups.all(),
         _activity_instances__status__in=(
@@ -129,17 +135,23 @@ def get_user_current_processes(user, include_unassigned=True):
         )
 
     q &= get_permission_filter(user)
-    return Process.objects.filter(
-        status=Process.STATUS_STARTED,
-    ).filter(q).distinct()
+    return (
+        Process.objects.filter(
+            status=Process.STATUS_STARTED,
+        )
+        .filter(q)
+        .distinct()
+    )
 
 
 def get_permission_filter(user):
     flows = get_flows()
-    flows_label_list = [label for (label, flow) in flows if not flow.permission or user.has_perm(flow.permission)]
-    return Q(
-        _activity_instances__process__flow_label__in=flows_label_list
-    )
+    flows_label_list = [
+        label
+        for (label, flow) in flows
+        if not flow.permission or user.has_perm(flow.permission)
+    ]
+    return Q(_activity_instances__process__flow_label__in=flows_label_list)
 
 
 def user_has_any_process_perm(user, process):
@@ -162,7 +174,9 @@ def user_has_activity_perm(user, activity):
         # if there are no required permissions we grant access
         return True
     elif activity.permission and activity.flow.permission:
-        return user.has_perm(activity.permission) and user.has_perm(activity.flow.permission)
+        return user.has_perm(activity.permission) and user.has_perm(
+            activity.flow.permission
+        )
     elif activity.permission:
         return user.has_perm(activity.permission)
     elif activity.flow.permission:
