@@ -1,4 +1,3 @@
-import six
 from django.contrib import messages
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.db.models import Q
@@ -323,9 +322,7 @@ class ActivityMixin(CurrentAppMixin):
         if self.activity.instance.status == self.activity.instance.STATUS_DONE:
             messages.info(
                 request,
-                _("The activity {} has already been done.").format(
-                    six.text_type(self.activity)
-                ),
+                _("The activity {} has already been done.").format(str(self.activity)),
             )
             return HttpResponseRedirect(
                 reverse(

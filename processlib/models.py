@@ -1,15 +1,11 @@
 import uuid
 import string
 
-import six
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
-
-from six import python_2_unicode_compatible
 
 
 def validate_flow_label(value):
@@ -24,14 +20,13 @@ def validate_flow_label(value):
 
 def is_format_string(value):
     try:
-        parsed = next(string.Formatter().parse(six.text_type(value)))
+        parsed = next(string.Formatter().parse(str(value)))
     except ValueError:
         return False
 
     return parsed[1] is not None
 
 
-@python_2_unicode_compatible
 class Process(models.Model):
     STATUS_STARTED = "started"
     STATUS_CANCELED = "canceled"
@@ -61,9 +56,9 @@ class Process(models.Model):
 
     def __str__(self):
         if not self.flow:
-            return six.text_type(self.id)
+            return str(self.id)
         if self.flow.verbose_name:
-            return six.text_type(self.flow.verbose_name)
+            return str(self.flow.verbose_name)
         return self.flow.name
 
     @property
@@ -73,16 +68,16 @@ class Process(models.Model):
     def can_cancel(self, user=None):
         return (
             self.status not in (self.STATUS_DONE, self.STATUS_CANCELED)
-            and not
+            and
             # FIXME allow cancelation of scheduled instances
-            self._activity_instances.filter(
+            not self._activity_instances.filter(
                 status=ActivityInstance.STATUS_SCHEDULED
             ).exists()
         )
 
     @property
     def description(self):
-        flow_description = six.text_type(self.flow.description or self.flow)
+        flow_description = str(self.flow.description or self.flow)
         if not is_format_string(flow_description):
             return flow_description
         try:

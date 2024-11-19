@@ -1,6 +1,5 @@
 from logging import getLogger
 
-import six
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import pre_migrate
@@ -28,15 +27,21 @@ def create_flow_permissions(app_config, **kwargs):
                         flow.permission, app_label, process_content_type.app_label
                     )
                 )
-            if Permission.objects.filter(codename=codename).exclude(content_type=process_content_type).exists():
+            if (
+                Permission.objects.filter(codename=codename)
+                .exclude(content_type=process_content_type)
+                .exists()
+            ):
                 # app_label.codename should match process_content_type, otherwise that doesn't really make sense
-                raise ValueError("A permission for {}.{} with a different content type already"
-                                 " exists. Set auto_create_permission to False or remove the other"
-                                 " permission")
+                raise ValueError(
+                    "A permission for {}.{} with a different content type already"
+                    " exists. Set auto_create_permission to False or remove the other"
+                    " permission"
+                )
             Permission.objects.update_or_create(
                 content_type=process_content_type,
                 codename=codename,
-                defaults={"name": six.text_type(flow)},
+                defaults={"name": str(flow)},
             )
         activity_content_type = ContentType.objects.get_for_model(flow.process_model)
         for activity_name in flow._activities:
@@ -47,11 +52,17 @@ def create_flow_permissions(app_config, **kwargs):
             # split like django
             app_label, codename = activity.permission.split(".", 1)
 
-            if Permission.objects.filter(codename=codename).exclude(content_type=activity_content_type).exists():
+            if (
+                Permission.objects.filter(codename=codename)
+                .exclude(content_type=activity_content_type)
+                .exists()
+            ):
                 # app_label.codename should match activity_content_type, otherwise that doesn't really make sense
-                raise ValueError("A permission for {}.{} with a different content type already"
-                                 " exists. Set auto_create_permission to False or remove the other"
-                                 " permission")
+                raise ValueError(
+                    "A permission for {}.{} with a different content type already"
+                    " exists. Set auto_create_permission to False or remove the other"
+                    " permission"
+                )
 
             if app_label != activity_content_type.app_label:
                 raise ValueError(
@@ -65,9 +76,7 @@ def create_flow_permissions(app_config, **kwargs):
             Permission.objects.update_or_create(
                 content_type=activity_content_type,
                 codename=codename,
-                defaults={
-                    "name": "{} - {}".format(six.text_type(flow), six.text_type(name))
-                },
+                defaults={"name": "{} - {}".format(str(flow), str(name))},
             )
 
 

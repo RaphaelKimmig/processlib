@@ -1,5 +1,4 @@
 import django
-import six
 from django.http import HttpResponseRedirect
 
 if django.VERSION[0] < 2:
@@ -18,7 +17,6 @@ from processlib.tasks import run_async_activity
 logger = logging.getLogger(__name__)
 
 
-@six.python_2_unicode_compatible
 class Activity(object):
     def __init__(
         self,
@@ -61,7 +59,7 @@ class Activity(object):
         return False
 
     def __str__(self):
-        return six.text_type(self.verbose_name or self.name)
+        return str(self.verbose_name or self.name)
 
     def __repr__(self):
         return '{}(name="{}")'.format(self.__class__.__name__, self.name)

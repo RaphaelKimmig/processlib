@@ -3,9 +3,7 @@ from __future__ import unicode_literals
 from collections import OrderedDict, defaultdict
 
 import logging
-import six
 from django.utils import timezone
-from six import python_2_unicode_compatible
 
 from .models import Process, ActivityInstance
 
@@ -34,7 +32,6 @@ def register_flow(flow):
     _FLOWS[flow.label] = flow
 
 
-@python_2_unicode_compatible
 class Flow(object):
     def __init__(
         self,
@@ -68,7 +65,7 @@ class Flow(object):
         )
 
     def __str__(self):
-        return six.text_type(self.verbose_name or self.name)
+        return str(self.verbose_name or self.name)
 
     def start_with(self, activity_name, activity, **activity_kwargs):
         if self._activities:
@@ -98,7 +95,7 @@ class Flow(object):
         predecessors = [after] if after else []
 
         if wait_for:
-            if isinstance(wait_for, six.string_types):
+            if isinstance(wait_for, str):
                 raise TypeError("wait_for should be a list or tuple")
 
             activity_kwargs["wait_for"] = wait_for
@@ -125,7 +122,7 @@ class Flow(object):
             process=process,
             instance=None,
             name=activity_name,
-            **self._activity_kwargs[activity_name]
+            **self._activity_kwargs[activity_name],
         )
 
     def get_activity_by_instance(self, instance):
@@ -143,7 +140,7 @@ class Flow(object):
             flow_label=self.label,
             started_at=timezone.now(),
             status=self.process_model.STATUS_STARTED,
-            **(process_kwargs or {})
+            **(process_kwargs or {}),
         )
         activity = self._get_activity_by_name(process, list(self._activities)[0])
         activity.instantiate(instance_kwargs=activity_instance_kwargs, request=request)
