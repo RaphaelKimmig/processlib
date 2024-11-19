@@ -13,6 +13,10 @@ from processlib.views import (
     ProcessCancelView,
 )
 
+
+app_name = "processlib"
+
+
 urlpatterns = [
     re_path(r"^process/$", ProcessListView.as_view(), name="process-list"),
     re_path(
@@ -20,7 +24,9 @@ urlpatterns = [
         UserCurrentProcessListView.as_view(),
         name="process-list-user-current",
     ),
-    re_path(r"^process/user/$", UserProcessListView.as_view(), name="process-list-user"),
+    re_path(
+        r"^process/user/$", UserProcessListView.as_view(), name="process-list-user"
+    ),
     re_path(
         r"^process/start/(?P<flow_label>.*)/$",
         ProcessStartView.as_view(),
@@ -46,7 +52,9 @@ urlpatterns = [
         ActivityRetryView.as_view(),
         name="activity-retry",
     ),
-    re_path(r"^process/(?P<pk>.*)/$", ProcessDetailView.as_view(), name="process-detail"),
+    re_path(
+        r"^process/(?P<pk>.*)/$", ProcessDetailView.as_view(), name="process-detail"
+    ),
     re_path(
         r"^process/(?P<pk>.*)/cancel$",
         ProcessCancelView.as_view(),
