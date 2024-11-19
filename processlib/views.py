@@ -272,6 +272,7 @@ class ActivityMixin(CurrentAppMixin):
     Mixin used by view activities, e.g. those defined as an ActivityView.
     """
 
+    success_url = None
     activity = None
     _finish_go_to_next = False
 
@@ -353,6 +354,13 @@ class ActivityMixin(CurrentAppMixin):
                         },
                         current_app=self.get_current_app(),
                     )
+
+        if self.success_url is not None:
+            if callable(self.success_url):
+                return self.success_url(self.activity)
+            else:
+                return str(self.success_url)
+
         return reverse(
             "processlib:process-detail",
             args=(self.activity.process.id,),

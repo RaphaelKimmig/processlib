@@ -1,15 +1,10 @@
-import django
-from django.http import HttpResponseRedirect
-
-if django.VERSION[0] < 2:
-    from django.core.urlresolvers import reverse
-else:
-    from django.urls import reverse
+import logging
 
 from django.db import transaction
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils import timezone
 
-import logging
 from processlib.assignment import inherit
 from processlib.tasks import run_async_activity
 
@@ -342,40 +337,6 @@ class EndActivity(Activity):
             update_fields.append("status")
 
         self.process.save(update_fields=update_fields)
-
-
-class EndRedirectActivity(EndActivity):
-    def __init__(self, redirect_url_callback=None, **kwargs):
-        self.redirect_url_callback = redirect_url_callback
-        super(EndActivity, self).__init__(**kwargs)
-
-    def instantiate(self, **kwargs):
-        # HACK: we skip the EndActivity implementation
-        # because it would finish the activity right away
-        super(EndActivity, self).instantiate(**kwargs)
-
-    def has_view(self):
-        return True
-
-    def get_absolute_url(self):
-        return reverse(
-            "processlib:process-activity",
-            kwargs={"flow_label": self.flow.label, "activity_id": self.instance.pk},
-        )
-
-    def dispatch(self, request, *args, **kwargs):
-        self.start()
-        url = reverse(
-            "processlib:process-detail", kwargs={"pk": self.instance.process.pk}
-        )
-        try:
-            if self.redirect_url_callback:
-                url = self.redirect_url_callback(self)
-            self.finish()
-        except Exception as e:
-            logger.exception(e)
-            self.error(exception=e)
-        return HttpResponseRedirect(url)
 
 
 class FormActivity(Activity):

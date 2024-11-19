@@ -9,7 +9,13 @@ from django.urls import reverse
 
 from processlib.activity import FunctionActivity, AsyncActivity
 from processlib.forms import ProcessCancelForm
-from .activity import StartActivity, EndActivity, ViewActivity, Wait, StartViewActivity
+from .activity import (
+    StartActivity,
+    EndActivity,
+    ViewActivity,
+    Wait,
+    StartViewActivity,
+)
 from .assignment import inherit, nobody, request_user
 from .flow import Flow
 from .models import ActivityInstance
@@ -393,9 +399,7 @@ class ProcesslibViewPermissionTest(TestCase):
         self.post_with_permissions = RequestFactory().post("/")
         self.post_with_permissions.user = self.user_with_perms
 
-    def test_process_list_view_respects_flow_permission(
-        self
-    ):
+    def test_process_list_view_respects_flow_permission(self):
         no_perm_response = ProcessListView.as_view()(
             self.get_no_permissions,
         )
@@ -406,9 +410,7 @@ class ProcesslibViewPermissionTest(TestCase):
         )
         self.assertContains(perm_response, self.process.pk)
 
-    def test_user_process_list_view_respects_flow_permission(
-            self
-    ):
+    def test_user_process_list_view_respects_flow_permission(self):
         no_perm_response = UserProcessListView.as_view()(
             self.get_no_permissions,
         )
@@ -419,9 +421,7 @@ class ProcesslibViewPermissionTest(TestCase):
         )
         self.assertContains(perm_response, self.process.pk)
 
-    def test_user_current_process_list_view_respects_flow_permission(
-            self
-    ):
+    def test_user_current_process_list_view_respects_flow_permission(self):
         no_perm_response = UserCurrentProcessListView.as_view()(
             self.get_no_permissions,
         )
@@ -433,7 +433,7 @@ class ProcesslibViewPermissionTest(TestCase):
         self.assertContains(perm_response, self.process.pk)
 
     def test_process_detail_view_raises_permission_denied_with_missing_permissions(
-        self
+        self,
     ):
         with self.assertRaises(PermissionDenied):
             ProcessDetailView.as_view()(self.get_no_permissions, pk=self.process.id)
@@ -443,7 +443,7 @@ class ProcesslibViewPermissionTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_process_cancel_view_raises_permission_denied_with_missing_permissions(
-        self
+        self,
     ):
         with self.assertRaises(PermissionDenied):
             ProcessCancelView.as_view()(self.get_no_permissions, pk=self.process.id)
@@ -474,7 +474,7 @@ class ProcesslibViewPermissionTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_process_activity_view_raises_permission_denied_with_missing_permissions(
-        self
+        self,
     ):
         next_activity = next(get_current_activities_in_process(self.process))
 
@@ -506,7 +506,7 @@ class ProcesslibViewPermissionTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_retry_activity_view_raises_permission_denied_with_missing_permissions(
-        self
+        self,
     ):
         with self.assertRaises(PermissionDenied):
             ActivityRetryView.as_view()(
@@ -522,7 +522,7 @@ class ProcesslibViewPermissionTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_cancel_activity_view_raises_permission_denied_with_missing_permissions(
-        self
+        self,
     ):
         next_activity = next(get_current_activities_in_process(self.process))
         with self.assertRaises(PermissionDenied):
@@ -762,6 +762,56 @@ class ProcesslibViewTest(TestCase):
         self.assertContains(response, str(self.process.pk))
 
 
+end_direct_test_flow = (
+    Flow("end_direct_test_flow")
+    .start_with("start", StartActivity)
+    .and_then(
+        "success-view",
+        ViewActivity,
+        view=ProcessUpdateView.as_view(
+            fields=[],
+            success_url=lambda a: "/custom/{}".format(a),
+        ),
+    )
+    .and_then("end", EndActivity)
+)
+
+
+class ProcesslibRedirectViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create(username="testuser")
+        self.user.set_password("password")
+        self.user.save()
+
+        self.start = end_direct_test_flow.get_start_activity()
+        self.start.start()
+        self.start.finish()
+        self.process = self.start.process
+        self.next_activity = next(get_current_activities_in_process(self.process))
+
+        self.get = RequestFactory().get("/")
+        self.get.user = self.user
+        self.client.login(username="testuser", password="password")
+
+    def test_end_redirect(self):
+        activity_instance = self.next_activity.instance
+        url = reverse(
+            "processlib:process-activity",
+            kwargs={
+                "flow_label": self.process.flow_label,
+                "activity_id": activity_instance.id,
+            },
+        )
+        response = self.client.post(url, {"_finish_go_to_next": True})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["location"], "/custom/success-view")
+
+        self.process.refresh_from_db()
+
+        self.assertIsNotNone(self.process.finished_at)
+
+
 class ActivityTest(TestCase):
     def test_function_activity_with_error_records_error(self):
         function_error_flow = (
@@ -798,9 +848,9 @@ class ActivityTest(TestCase):
             activity.instance.assigned_group = Group.objects.create(name="side-effect")
             activity.instance.save()
 
-        function_error_retry_flow._activity_kwargs["function"][
-            "callback"
-        ] = working_callback
+        function_error_retry_flow._activity_kwargs["function"]["callback"] = (
+            working_callback
+        )
 
         activity_instance.activity.retry()
         activity_instance.refresh_from_db()
