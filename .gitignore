@@ -1,6 +1,8 @@
 *.swp
 .idea
 env/
+venv
+demo/processlib
 *.sqlite3
 *.pyc
 */__pycache__/*
