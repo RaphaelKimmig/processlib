@@ -1,3 +1,5 @@
+import json
+from unittest import mock
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -45,6 +47,7 @@ from .views import (
     ActivityCancelView,
     ProcessViewSet,
 )
+from .tasks import run_async_activity
 
 User = get_user_model()
 
@@ -1112,6 +1115,61 @@ class AsyncActivityTest(TransactionTestCase):
         activity_instance.refresh_from_db()
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_DONE)
         self.assertEqual(activity_instance.assigned_group.name, "side-effect")
+
+    def test_async_activity_with_skipped_successor_still_finishes_end(self):
+        async_skip_flow = (
+            Flow("async_skip_view_flow")
+            .start_with("start", StartActivity)
+            .and_then(
+                "confirm",
+                ViewActivity,
+                view=ProcessUpdateView.as_view(fields=[]),
+            )
+            .and_then("async", AsyncActivity, callback=lambda activity: None)
+            .and_then(
+                "acknowledge",
+                ViewActivity,
+                view=ProcessUpdateView.as_view(fields=[]),
+                skip_if=lambda activity: True,
+            )
+            .and_then("success", EndActivity)
+        )
+        start = async_skip_flow.get_start_activity()
+
+        delayed_calls = []
+
+        def fake_delay(flow_label, activity_instance_id):
+            delayed_calls.append((flow_label, activity_instance_id))
+
+        with mock.patch(
+            "processlib.tasks.run_async_activity.delay", side_effect=fake_delay
+        ):
+            with transaction.atomic():
+                start.start()
+                start.finish()
+                confirm = start.process._activity_instances.get(
+                    activity_name="confirm"
+                ).activity
+                confirm.start()
+                confirm.finish()
+
+        self.assertEqual(len(delayed_calls), 1)
+        self.assertFalse(
+            start.process._activity_instances.filter(
+                activity_name="acknowledge"
+            ).exists()
+        )
+
+        self.assertFalse(
+            start.process._activity_instances.filter(activity_name="success").exists()
+        )
+
+        flow_label, instance_id = delayed_calls.pop()
+        run_async_activity(flow_label, instance_id)
+        success_instance = start.process._activity_instances.get(
+            activity_name="success"
+        )
+        self.assertEqual(success_instance.status, ActivityInstance.STATUS_DONE)
 
 
 class TemplateTagsTest(TestCase):
