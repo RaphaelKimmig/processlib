@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 
 from collections import OrderedDict, defaultdict
 
@@ -32,7 +31,7 @@ def register_flow(flow):
     _FLOWS[flow.label] = flow
 
 
-class Flow(object):
+class Flow:
     def __init__(
         self,
         name,

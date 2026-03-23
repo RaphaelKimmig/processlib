@@ -1,30 +1,36 @@
-import json
-
-from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.test import TestCase, TransactionTestCase, RequestFactory
 from django.urls import reverse
 
-from processlib.activity import FunctionActivity, AsyncActivity
-from processlib.forms import ProcessCancelForm
 from .activity import (
+    Activity,
     StartActivity,
     EndActivity,
     ViewActivity,
     Wait,
     StartViewActivity,
 )
+from .activity import FunctionActivity, AsyncActivity
 from .assignment import inherit, nobody, request_user
 from .flow import Flow
-from .models import ActivityInstance
+from .forms import ProcessCancelForm
+from .models import ActivityInstance, Process, validate_flow_label, is_format_string
 from .services import (
     get_user_processes,
     get_user_current_processes,
     get_current_activities_in_process,
+    get_process_for_flow,
+    get_activity_for_flow,
+    get_activities_to_do,
+    get_finished_activities_in_process,
+    cancel_process,
+    cancel_and_undo_predecessors,
 )
 from .services import user_has_activity_perm, user_has_any_process_perm
+from .templatetags import processlib_tags
 from .views import (
     ProcessUpdateView,
     ProcessDetailView,
@@ -245,6 +251,117 @@ class UserProcessesTest(TestCase):
         self.assertNotEqual(process.status, process.STATUS_DONE)
 
         self.assertSequenceEqual([], get_user_current_processes(self.user_1))
+
+
+class ServicesTest(TestCase):
+    def test_get_process_for_flow(self):
+        Flow("test_get_process_flow").start_with("start", StartActivity)
+        process = Process.objects.create(flow_label="test_get_process_flow")
+
+        self.assertEqual(
+            get_process_for_flow("test_get_process_flow", process.pk), process
+        )
+
+    def test_get_activity_for_flow(self):
+        flow = Flow("test_get_activity_flow").start_with("start", StartActivity)
+        start_activity = flow.get_start_activity()
+        start_activity.start()
+        start_activity.finish()
+
+        self.assertEqual(
+            get_activity_for_flow(
+                "test_get_activity_flow", start_activity.instance.pk
+            ).instance,
+            start_activity.instance,
+        )
+
+    def test_get_activities_to_do(self):
+        user = User.objects.create(username="todo_user")
+        flow = (
+            Flow("test_todo_flow")
+            .start_with("start", StartActivity)
+            .and_then("view", ViewActivity, view=lambda x: x)
+        )
+        start_activity = flow.get_start_activity()
+        start_activity.start()
+        start_activity.finish()
+
+        process = start_activity.process
+        self.assertEqual(len(get_activities_to_do(user, process)), 1)
+
+        process.status = Process.STATUS_DONE
+        process.save()
+        self.assertEqual(get_activities_to_do(user, process), [])
+
+    def test_get_finished_activities_in_process(self):
+        flow = Flow("test_finished_flow").start_with("start", StartActivity)
+        start_activity = flow.get_start_activity()
+        start_activity.start()
+        start_activity.finish()
+
+        finished = list(get_finished_activities_in_process(start_activity.process))
+        self.assertEqual(len(finished), 1)
+        self.assertEqual(finished[0].instance, start_activity.instance)
+
+    def test_cancel_process(self):
+        user = User.objects.create(username="cancel_user")
+        flow = (
+            Flow("test_cancel_flow")
+            .start_with("start", StartActivity)
+            .and_then("view", ViewActivity, view=lambda x: x)
+        )
+        start_activity = flow.get_start_activity()
+        start_activity.start()
+        start_activity.finish()
+
+        process = start_activity.process
+        cancel_process(process, user)
+        process.refresh_from_db()
+        self.assertEqual(process.status, Process.STATUS_CANCELED)
+
+    def test_cancel_and_undo_predecessors(self):
+        flow = (
+            Flow("test_undo_flow")
+            .start_with("start", StartActivity)
+            .and_then("view", ViewActivity, view=lambda x: x)
+        )
+        start_activity = flow.get_start_activity()
+        start_activity.start()
+        start_activity.finish()
+
+        view_activity = next(get_current_activities_in_process(start_activity.process))
+        cancel_and_undo_predecessors(view_activity)
+
+        view_activity.instance.refresh_from_db()
+        start_activity.instance.refresh_from_db()
+
+        self.assertEqual(view_activity.instance.status, ActivityInstance.STATUS_CANCELED)
+        self.assertEqual(
+            start_activity.instance.status, ActivityInstance.STATUS_INSTANTIATED
+        )
+
+    def test_get_user_processes_unauthenticated(self):
+        from django.contrib.auth.models import AnonymousUser
+
+        user = AnonymousUser()
+        self.assertSequenceEqual(get_user_processes(user), [])
+        self.assertSequenceEqual(get_user_current_processes(user), [])
+
+    def test_get_activities_to_do_permission_denied(self):
+        user = User.objects.create(username="no_perm_user")
+        flow = (
+            Flow("test_perm_todo_flow")
+            .start_with("start", StartActivity)
+            .and_then(
+                "view", ViewActivity, view=lambda x: x, permission="processlib.some_perm"
+            )
+        )
+        start_activity = flow.get_start_activity()
+        start_activity.start()
+        start_activity.finish()
+
+        process = start_activity.process
+        self.assertEqual(get_activities_to_do(user, process), [])
 
 
 no_permissions_test_flow = (
@@ -822,7 +939,8 @@ class ActivityTest(TestCase):
         )
         start = function_error_flow.get_start_activity()
         start.start()
-        start.finish()
+        with self.assertLogs("processlib.activity", level="ERROR"):
+            start.finish()
 
         activity_instance = start.process._activity_instances.get(
             activity_name="function"
@@ -838,7 +956,8 @@ class ActivityTest(TestCase):
         )
         start = function_error_retry_flow.get_start_activity()
         start.start()
-        start.finish()
+        with self.assertLogs("processlib.activity", level="ERROR"):
+            start.finish()
 
         activity_instance = start.process._activity_instances.get(
             activity_name="function"
@@ -857,8 +976,101 @@ class ActivityTest(TestCase):
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_DONE)
         self.assertEqual(activity_instance.assigned_group.name, "side-effect")
 
+    def test_has_active_successors(self):
+        flow = (
+            Flow("test_successors_flow")
+            .start_with("start", StartActivity)
+            .and_then("next", Activity)
+        )
+        start_activity = flow.get_start_activity()
+        start_instance = start_activity.instance
+        start_activity.start()
+        start_activity.finish()
+
+        # Successor 'next' is instantiated
+        next_instance = start_instance.process._activity_instances.get(activity_name="next")
+        self.assertTrue(start_instance.has_active_successors)
+
+        # Test different statuses
+        for status in [
+            ActivityInstance.STATUS_INSTANTIATED,
+            ActivityInstance.STATUS_SCHEDULED,
+            ActivityInstance.STATUS_STARTED,
+            ActivityInstance.STATUS_DONE,
+            ActivityInstance.STATUS_ERROR,
+        ]:
+            next_instance.status = status
+            next_instance.save()
+            self.assertTrue(
+                start_instance.has_active_successors, f"Failed for status {status}"
+            )
+
+        next_instance.status = ActivityInstance.STATUS_CANCELED
+        next_instance.save()
+        self.assertFalse(start_instance.has_active_successors)
+
+    def test_has_active_successors_empty(self):
+        flow = Flow("test_no_successors_flow").start_with("start", StartActivity)
+        start_activity = flow.get_start_activity()
+        self.assertFalse(start_activity.instance.has_active_successors)
+
+    def test_repr(self):
+        flow = Flow("test_repr_flow").start_with("start", StartActivity)
+        start_activity = flow.get_start_activity()
+        self.assertEqual(
+            repr(start_activity.instance), 'ActivityInstance(activity_name="start")'
+        )
+
+    def test_save_missing_name(self):
+        flow = Flow("test_save_flow").start_with("start", StartActivity)
+        with self.assertRaises(ValueError):
+            ActivityInstance.objects.create(
+                process=Process.objects.create(flow_label="test_save_flow")
+            )
+
+
+class ProcessTest(TestCase):
+    def test_str(self):
+        flow = Flow("test_str_flow").start_with("start", StartActivity)
+        process = Process.objects.create(flow_label="test_str_flow")
+        self.assertEqual(str(process), "test_str_flow")
+
+        flow.verbose_name = "My Flow"
+        self.assertEqual(str(process), "My Flow")
+
+    def test_description_format(self):
+        flow = Flow("test_desc_flow", description="Hello {process.flow_label}")
+        flow.start_with("start", StartActivity)
+        process = Process.objects.create(flow_label="test_desc_flow")
+        self.assertEqual(process.description, f"Hello {process.flow_label}")
+
+
+class ModelUtilsTest(TestCase):
+    def test_validate_flow_label(self):
+        Flow("valid_flow").start_with("start", StartActivity)
+        validate_flow_label("valid_flow")
+
+        with self.assertRaises(ValidationError):
+            validate_flow_label("invalid_flow")
+
+    def test_is_format_string(self):
+        self.assertTrue(is_format_string("Hello {name}"))
+        self.assertFalse(is_format_string("Hello name"))
+        self.assertFalse(is_format_string(123))
+        self.assertFalse(is_format_string("Hello }"))
+
 
 class AsyncActivityTest(TransactionTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        try:
+            from celery import current_app
+
+            current_app.config_from_object("django.conf:settings", namespace="CELERY")
+        except ImportError:  # pragma: no cover
+            pass
+
     def test_async_activity_with_error_records_error(self):
         function_error_flow = (
             Flow("async_error_flow")
@@ -868,7 +1080,7 @@ class AsyncActivityTest(TransactionTestCase):
         )
         start = function_error_flow.get_start_activity()
 
-        with transaction.atomic():
+        with self.assertLogs("processlib.tasks", level="ERROR"), transaction.atomic():
             start.start()
             start.finish()
 
@@ -884,7 +1096,7 @@ class AsyncActivityTest(TransactionTestCase):
         )
         start = async_error_retry_flow.get_start_activity()
 
-        with transaction.atomic():
+        with self.assertLogs("processlib.tasks", level="ERROR"), transaction.atomic():
             start.start()
             start.finish()
 
@@ -900,3 +1112,49 @@ class AsyncActivityTest(TransactionTestCase):
         activity_instance.refresh_from_db()
         self.assertEqual(activity_instance.status, ActivityInstance.STATUS_DONE)
         self.assertEqual(activity_instance.assigned_group.name, "side-effect")
+
+
+class TemplateTagsTest(TestCase):
+    def test_get_user_current_process_count(self):
+        user = User.objects.create(username="test_tag_user")
+        Flow("test_tag_count_flow").start_with("start", StartActivity)
+        process = Process.objects.create(flow_label="test_tag_count_flow")
+        ActivityInstance.objects.create(
+            process=process,
+            activity_name="start",
+            status=ActivityInstance.STATUS_INSTANTIATED,
+            assigned_user=user,
+        )
+
+        count = processlib_tags.get_user_current_process_count(user)
+        self.assertEqual(count, 1)
+
+    def test_get_current_activities_in_process(self):
+        Flow("test_tag_current_flow").start_with("start", StartActivity)
+        process = Process.objects.create(flow_label="test_tag_current_flow")
+        ActivityInstance.objects.create(
+            process=process,
+            activity_name="start",
+            status=ActivityInstance.STATUS_INSTANTIATED,
+        )
+
+        activities = list(processlib_tags.get_current_activities_in_process(process))
+        self.assertEqual(len(activities), 1)
+        self.assertEqual(activities[0].name, "start")
+
+    def test_get_activities_to_do(self):
+        user = User.objects.create(username="test_todo_tag_user")
+        flow = Flow("test_tag_todo_flow").start_with(
+            "start", StartViewActivity, view=lambda x: x
+        )
+        process = Process.objects.create(flow_label="test_tag_todo_flow")
+        ActivityInstance.objects.create(
+            process=process,
+            activity_name="start",
+            status=ActivityInstance.STATUS_INSTANTIATED,
+            assigned_user=user,
+        )
+
+        todo = list(processlib_tags.get_activities_to_do(user, process))
+        self.assertEqual(len(todo), 1)
+        self.assertEqual(todo[0].name, "start")

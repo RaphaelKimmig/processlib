@@ -12,7 +12,7 @@ from processlib.tasks import run_async_activity
 logger = logging.getLogger(__name__)
 
 
-class Activity(object):
+class Activity:
     def __init__(
         self,
         flow,
@@ -157,14 +157,14 @@ class State(Activity):
     """
 
     def instantiate(self, **kwargs):
-        super(State, self).instantiate(**kwargs)
+        super().instantiate(**kwargs)
         self.start()
         self.finish()
 
 
 class ViewActivity(Activity):
     def __init__(self, view=None, **kwargs):
-        super(ViewActivity, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         if view is None:
             raise ValueError(
                 "A ViewActivity requires a view, non given for {}.{}".format(
@@ -190,14 +190,14 @@ class ViewActivity(Activity):
 class FunctionActivity(Activity):
     def __init__(self, callback=None, **kwargs):
         self.callback = callback
-        super(FunctionActivity, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def instantiate(self, **kwargs):
-        super(FunctionActivity, self).instantiate(**kwargs)
+        super().instantiate(**kwargs)
         self.start()
 
     def start(self, **kwargs):
-        super(FunctionActivity, self).start(**kwargs)
+        super().start(**kwargs)
 
         try:
             self.callback(self)
@@ -219,10 +219,10 @@ class FunctionActivity(Activity):
 class AsyncActivity(Activity):
     def __init__(self, callback=None, **kwargs):
         self.callback = callback
-        super(AsyncActivity, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def instantiate(self, **kwargs):
-        super(AsyncActivity, self).instantiate(**kwargs)
+        super().instantiate(**kwargs)
         self.schedule()
 
     def schedule(self, **kwargs):
@@ -240,7 +240,7 @@ class AsyncActivity(Activity):
         self.schedule(**kwargs)
 
     def start(self, **kwargs):
-        super(AsyncActivity, self).start(**kwargs)
+        super().start(**kwargs)
         self.callback(self)
 
 
@@ -251,7 +251,7 @@ class AsyncViewActivity(AsyncActivity):
     """
 
     def __init__(self, view=None, **kwargs):
-        super(AsyncViewActivity, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         if view is None:
             raise ValueError(
                 "An AsyncViewActivity requires a view, non given for {}.{}".format(
@@ -320,12 +320,12 @@ class StartViewActivity(StartMixin, ViewActivity):
 
 class EndActivity(Activity):
     def instantiate(self, **kwargs):
-        super(EndActivity, self).instantiate(**kwargs)
+        super().instantiate(**kwargs)
         self.start()
         self.finish()
 
     def finish(self, **kwargs):
-        super(EndActivity, self).finish(**kwargs)
+        super().finish(**kwargs)
 
         update_fields = []
         if not self.process.finished_at:
@@ -342,7 +342,7 @@ class EndActivity(Activity):
 class FormActivity(Activity):
     def __init__(self, form_class=None, **kwargs):
         self.form_class = form_class
-        super(FormActivity, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def get_form(self, **kwargs):
         return self.form_class(**kwargs)
@@ -354,7 +354,7 @@ class StartFormActivity(StartMixin, FormActivity):
 
 class IfElse(Activity):
     def __init__(self, flow, process, instance, name, **kwargs):
-        super(IfElse, self).__init__(flow, process, instance, name, **kwargs)
+        super().__init__(flow, process, instance, name, **kwargs)
 
 
 class Wait(Activity):
@@ -363,7 +363,7 @@ class Wait(Activity):
         if not wait_for:
             raise ValueError("Wait activity needs to wait for something.")
 
-        super(Wait, self).__init__(flow, process, instance, name, **kwargs)
+        super().__init__(flow, process, instance, name, **kwargs)
 
         self._wait_for = set(wait_for) if wait_for else None
 

@@ -30,3 +30,5 @@ TEMPLATES = [
 ]
 
 ROOT_URLCONF = "processlib.test_urls"
+
+CELERY_TASK_ALWAYS_EAGER = True

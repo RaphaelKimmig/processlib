@@ -26,7 +26,7 @@ from .services import (
 from .services import user_has_any_process_perm
 
 
-class CurrentAppMixin(object):
+class CurrentAppMixin:
     def get_current_app(self):
         try:
             current_app = self.request.current_app
@@ -55,7 +55,7 @@ class ProcessListView(CurrentAppMixin, ListView):
         return self.title
 
     def get_queryset(self):
-        qs = super(ProcessListView, self).get_queryset()
+        qs = super().get_queryset()
         qs = self.filter_queryset(qs)
         return qs.filter(get_permission_filter(self.request.user)).distinct()
 
@@ -99,7 +99,7 @@ class ProcessListView(CurrentAppMixin, ListView):
         kwargs["search"] = self.get_search_query()
         kwargs["title"] = self.get_title()
         kwargs["detail_view_name"] = self.detail_view_name
-        return super(ProcessListView, self).get_context_data(**kwargs)
+        return super().get_context_data(**kwargs)
 
 
 class UserProcessListView(ProcessListView):
@@ -125,7 +125,7 @@ class ProcessDetailView(DetailView):
 
     def get_template_names(self):
         try:
-            names = super(ProcessDetailView, self).get_template_names()
+            names = super().get_template_names()
         except ImproperlyConfigured:
             names = []
         names.append("processlib/{}_detail.html".format(self.object.flow.label))
@@ -133,7 +133,7 @@ class ProcessDetailView(DetailView):
         return names
 
     def get_object(self, queryset=None):
-        process = super(ProcessDetailView, self).get_object(queryset)
+        process = super().get_object(queryset)
         if not user_has_any_process_perm(self.request.user, process):
             raise PermissionDenied
         return process.flow.process_model.objects.get(pk=process.id)
@@ -157,7 +157,7 @@ class ProcessDetailView(DetailView):
         kwargs["return_to"] = self.get_return_to_url()
         kwargs["extra_detail_template_name"] = self.get_extra_detail_template_name()
         kwargs["activities"] = get_activities_in_process(self.object)
-        return super(ProcessDetailView, self).get_context_data(**kwargs)
+        return super().get_context_data(**kwargs)
 
 
 class ProcessCancelView(UpdateView):
@@ -167,7 +167,7 @@ class ProcessCancelView(UpdateView):
 
     def get_template_names(self):
         try:
-            names = super(ProcessCancelView, self).get_template_names()
+            names = super().get_template_names()
         except ImproperlyConfigured:
             names = []
         names.append("processlib/{}_cancel.html".format(self.object.flow.label))
@@ -183,7 +183,7 @@ class ProcessCancelView(UpdateView):
         return reverse("processlib:process-detail", kwargs={"pk": self.object.pk})
 
     def get_object(self, queryset=None):
-        process = super(ProcessCancelView, self).get_object(queryset)
+        process = super().get_object(queryset)
         if not user_has_any_process_perm(self.request.user, process):
             raise PermissionDenied
         return process.flow.process_model.objects.get(pk=process.id)
@@ -213,7 +213,7 @@ class ProcessStartView(CurrentAppMixin, View):
         if self.activity.has_view():
             return self.activity.dispatch(request, *args, **kwargs)
         else:
-            return super(ProcessStartView, self).dispatch(request, *args, **kwargs)
+            return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         user = request.user if request.user.is_authenticated else None
@@ -222,7 +222,7 @@ class ProcessStartView(CurrentAppMixin, View):
         return self.redirect("processlib:process-detail", pk=self.activity.process.id)
 
 
-class ActivityByLabelAndIdMixin(object):
+class ActivityByLabelAndIdMixin:
     queryset = ActivityInstance.objects.all()
     activity_id = None
     flow_label = None
@@ -281,7 +281,7 @@ class ActivityMixin(CurrentAppMixin):
 
     def get_template_names(self):
         try:
-            names = super(CurrentAppMixin, self).get_template_names()
+            names = super().get_template_names()
         except ImproperlyConfigured:
             names = []
         names.append(
@@ -295,7 +295,7 @@ class ActivityMixin(CurrentAppMixin):
 
     def get_context_data(self, **kwargs):
         kwargs["activity"] = self.activity
-        return super(ActivityMixin, self).get_context_data(**kwargs)
+        return super().get_context_data(**kwargs)
 
     def get_object(self, queryset=None):
         return self.activity.process
@@ -304,7 +304,7 @@ class ActivityMixin(CurrentAppMixin):
         return self.activity.flow.process_model._default_manager.all()
 
     def form_valid(self, *args, **kwargs):
-        super(ActivityMixin, self).form_valid(*args, **kwargs)
+        super().form_valid(*args, **kwargs)
 
         if "_finish" in self.request.POST or "_finish_go_to_next" in self.request.POST:
             user = self.request.user if self.request.user.is_authenticated else None
@@ -334,7 +334,7 @@ class ActivityMixin(CurrentAppMixin):
             )
 
         self.activity.start()
-        return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         # stay on current page if activity not finished
@@ -421,4 +421,4 @@ class AsyncActivityView(ActivityMixin, TemplateView):
         if self.activity.instance.status == self.activity.instance.STATUS_DONE:
             return HttpResponseRedirect(self.get_success_url())
 
-        return super(ActivityMixin, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)

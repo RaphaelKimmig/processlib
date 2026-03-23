@@ -6,10 +6,10 @@ from .models import Process
 class ProcessCancelForm(forms.ModelForm):
     def __init__(self, user=None, **kwargs):
         self.user = user
-        super(ProcessCancelForm, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def clean(self):
-        data = super(ProcessCancelForm, self).clean()
+        data = super().clean()
 
         if not self.instance.can_cancel(user=self.user):
             raise ValidationError("You can't cancel that process at this time.")

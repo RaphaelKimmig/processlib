@@ -156,8 +156,11 @@ class ActivityInstance(models.Model):
     ):
         if not self.activity_name:
             raise ValueError("Missing activity name")
-        super(ActivityInstance, self).save(
-            force_insert, force_update, using, update_fields
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
         )
 
     @property

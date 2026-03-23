@@ -1,8 +1,29 @@
 A workflow/process library for python. WIP
 
+Virtual Environment
+-------------------
+To create and use a virtual environment for the project:
+
+```shell
+python -m venv venv
+source venv/bin/activate
+pip install --editable .
+```
+
 Testing
 --------
 Run the tests using `python -m django test --settings processlib.test_settings`.
+
+**Coverage**
+
+Use `coverage` to measure code coverage of the tests:
+
+```shell
+pip install coverage
+coverage run --source=processlib --module django test --settings processlib.test_settings
+coverage report --show-missing
+coverage html
+```
 
 
 ISSUES
